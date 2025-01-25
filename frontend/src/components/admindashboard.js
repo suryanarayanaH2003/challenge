@@ -5,29 +5,9 @@ import Button from "./ui/button";
 import JobApplicants from "./JobApplicants";
 
 const AdminDashboard = () => {
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [adminData, setAdminData] = useState(null);
-  const [selectedJob, setSelectedJob] = useState(null);
-  const navigate = useNavigate();
+
 
   useEffect(() => {
-    // Check if admin is logged in
-    const storedAdminData = localStorage.getItem('adminData');
-    if (!storedAdminData) {
-      navigate('/login-admin');
-      return;
-    }
-
-    setAdminData(JSON.parse(storedAdminData));
-  }, [navigate]);
-
-  // Fetch jobs from the backend
-  useEffect(() => {
-    const fetchJobs = async () => {
-      if (!adminData?.email) return;
-
       try {
         const response = await axios.get("http://localhost:8000/jobs/", {
           headers: {

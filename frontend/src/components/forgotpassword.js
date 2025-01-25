@@ -41,16 +41,16 @@ const ForgotPassword = () => {
 
         let errorMessage = '';
         if (lowercaseCount < 3) {
-            errorMessage += 'Password must have at least 3 lowercase letters. ';
+            errorMessage += 'At least 3 lowercase letters. ';
         }
         if (numberCount < 3) {
-            errorMessage += 'Password must have at least 3 numbers. ';
+            errorMessage += 'At least 3 numbers. ';
         }
         if (specialCharacterCount < 1) {
-            errorMessage += 'Password must have at least 1 special character. ';
+            errorMessage += 'At least 1 special character. ';
         }
         if (password.length < 7) {
-            errorMessage += 'Password must be at least 7 characters long. ';
+            errorMessage += 'At least 7 characters long. ';
         }
 
         setPasswordError(errorMessage.trim());
@@ -127,176 +127,43 @@ const ForgotPassword = () => {
     };
 
     return (
-        <div className="forgot-password-container">
-            <style>
-                {`
-          .forgot-password-container {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background-color: #f7fafc;
-            padding: 20px;
-          }
-
-          .form-wrapper {
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
-          }
-
-          .title {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 20px;
-            text-align: center;
-          }
-
-          .form-group {
-            margin-bottom: 15px;
-          }
-
-          .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #4a5568;
-          }
-
-          .form-input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            transition: border-color 0.3s;
-          }
-
-          .form-input:focus {
-            border-color: #4299e1;
-            outline: none;
-          }
-
-          .button {
-            width: 100%;
-            padding: 12px;
-            background-color: #4299e1;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-          }
-
-          .button:hover {
-            background-color: #3182ce;
-          }
-
-          .button:disabled {
-            background-color: #a0aec0;
-            cursor: not-allowed;
-          }
-
-          .error-message {
-            color: #e53e3e;
-            font-size: 0.875rem;
-            margin-bottom: 10px;
-          }
-
-          .success-message {
-            color: #38a169;
-            font-size: 0.875rem;
-            margin-bottom: 10px;
-          }
-
-          .timer {
-            color: #4a5568;
-            font-size: 0.875rem;
-            margin-top: 5px;
-          }
-        `}
-            </style>
-
-            <div className="form-wrapper">
-                <h2 className="title">Reset Password</h2>
-
-                {error && <div className="error-message">{error}</div>}
-                {message && <div className="success-message">{message}</div>}
-
-                <div className="form-group">
-                    <label>Email Address</label>
-                    <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="form-input"
-                        placeholder="Enter your email"
-                        disabled={showOtpInput || showPasswordInput}
-                    />
-                    {!showOtpInput && !showPasswordInput && (
-                        <button
-                            onClick={handleSendOtp}
-                            className="button"
-                            disabled={!email || isTimerRunning}
-                        >
-                            {isTimerRunning ? `Resend OTP in ${formatTime(otpTimer)}` : 'Send OTP'}
-                        </button>
-                    )}
-                </div>
-
-                {showOtpInput && (
-                    <div className="form-group">
-                        <label>Enter OTP</label>
-                        <input
-                            type="text"
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value)}
-                            className="form-input"
-                            placeholder="Enter OTP"
-                        />
-                        <button onClick={handleVerifyOtp} className="button">
-                            Verify OTP
-                        </button>
-                    </div>
-                )}
-
-                {showPasswordInput && (
-                    <>
-                        <div className="form-group">
-                            <label>New Password</label>
-                            <input
-                                type="password"
-                                value={newPassword}
-                                onChange={(e) => {
-                                    setNewPassword(e.target.value);
-                                    validatePassword(e.target.value);
-                                }}
-                                className="form-input"
-                                placeholder="Enter new password"
-                            />
-                            {passwordError && <div className="error-message">{passwordError}</div>}
-                        </div>
-
-                        <div className="form-group">
-                            <label>Confirm Password</label>
-                            <input
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="form-input"
-                                placeholder="Confirm new password"
-                            />
-                        </div>
-
-                        <button onClick={handleResetPassword} className="button">
-                            Reset Password
-                        </button>
-                    </>
+        <div>
+            <h2>Reset Password</h2>
+            {error && <div>{error}</div>}
+            {message && <div>{message}</div>}
+            <div>
+                <label>Email Address</label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                {!showOtpInput && (
+                    <button onClick={handleSendOtp} disabled={!email || isTimerRunning}>
+                        {isTimerRunning ? `Resend OTP in ${Math.floor(otpTimer / 60)}:${otpTimer % 60}` : 'Send OTP'}
+                    </button>
                 )}
             </div>
+            {showOtpInput && (
+                <div>
+                    <label>Enter OTP</label>
+                    <input type="text" value={otp} onChange={(e) => setOtp(e.target.value)} />
+                    <button onClick={handleVerifyOtp}>Verify OTP</button>
+                </div>
+            )}
+            {showPasswordInput && (
+                <>
+                    <div>
+                        <label>New Password</label>
+                        <input type="password" value={newPassword} onChange={(e) => {
+                            setNewPassword(e.target.value);
+                            validatePassword(e.target.value);
+                        }} />
+                        {passwordError && <p>{passwordError}</p>}
+                    </div>
+                    <div>
+                        <label>Confirm Password</label>
+                        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                    </div>
+                    <button onClick={handleResetPassword}>Reset Password</button>
+                </>
+            )}
         </div>
     );
 };

@@ -17,6 +17,15 @@ urlpatterns = [
     path('api/forgot-password/request-otp/', forgot_password_request_otp, name='forgot-password-request-otp'),
     path('api/forgot-password/verify-otp/', verify_otp, name='verify-otp'),  # Ensure this line is present
     path('api/reset-password/', reset_password, name='reset-password'),
+    path("postjobs/", post_job, name="post_job"),
+    path('jobs/', get_jobs, name='get_jobs'),
+    path('fetchjobs/', fetch_jobs, name='fetch_jobs'),
+    path('company/<str:company_id>/', get_company_details, name='get_company_details'),
+    path('company/<str:company_id>/update/', update_company_details, name='update_company_details'),
+    path('apply-job/', apply_job, name='apply_job'),
+    path('user-applications/', user_applications, name='user_applications'),
+    path('job-applicants/<str:job_id>/', job_applicants, name='job_applicants'),
+    path('update-application-status/<str:application_id>/', update_application_status, name='update_application_status'),
 
 ]
 

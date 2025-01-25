@@ -17,7 +17,7 @@ const RegisterUser = () => {
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
-  const [otpTimer, setOtpTimer] = useState(300); // 5 minutes in seconds
+  const [otpTimer, setOtpTimer] = useState(300);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
   useEffect(() => {
