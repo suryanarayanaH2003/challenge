@@ -5,6 +5,7 @@ import RegisterUser from './components/registeruser';
 import LoginAdmin from './components/loginadmin';
 import LoginUser from './components/loginuser';
 import Home from './components/home';
+import ForgotPassword from './components/forgotpassword';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/register-user" element={<RegisterUser />} />
         <Route path="/login-admin" element={<LoginAdmin />} />
         <Route path="/login-user" element={<LoginUser />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

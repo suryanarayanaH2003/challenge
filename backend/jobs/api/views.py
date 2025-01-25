@@ -54,47 +54,118 @@ def send_otp_email(email, otp):
         return False
 
 @csrf_exempt
+def request_admin_email_otp(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            
+            if not email:
+                return JsonResponse({'status': 'failed', 'message': 'Email is required'})
+            
+            # Check if email already exists
+            existing_user = info_collection.find_one({'email': email})
+            if existing_user:
+                return JsonResponse({'status': 'failed', 'message': 'Email already registered'})
+            
+            otp = generate_otp()
+            if send_otp_email(email, otp):
+                email_otp_store[email] = {
+                    'otp': otp,
+                    'timestamp': datetime.datetime.utcnow(),
+                    'attempts': 0
+                }
+                return JsonResponse({'status': 'success', 'message': 'OTP sent successfully'})
+            return JsonResponse({'status': 'failed', 'message': 'Failed to send OTP'})
+            
+        except Exception as e:
+            return JsonResponse({'status': 'failed', 'message': str(e)})
+    
+    return JsonResponse({'status': 'failed', 'message': 'Invalid request method'})
+
+@csrf_exempt
+def verify_admin_email_otp(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            otp = data.get('otp')
+            
+            stored_data = email_otp_store.get(email)
+            if not stored_data:
+                return JsonResponse({'status': 'failed', 'message': 'No OTP found for this email'})
+            
+            if datetime.datetime.utcnow() - stored_data['timestamp'] > datetime.timedelta(minutes=5):
+                del email_otp_store[email]
+                return JsonResponse({'status': 'failed', 'message': 'OTP expired'})
+            
+            if stored_data['attempts'] >= 3:
+                del email_otp_store[email]
+                return JsonResponse({'status': 'failed', 'message': 'Too many attempts'})
+            
+            if stored_data['otp'] == otp:
+                del email_otp_store[email]
+                return JsonResponse({'status': 'success', 'message': 'Email verified successfully'})
+            
+            stored_data['attempts'] += 1
+            return JsonResponse({'status': 'failed', 'message': 'Invalid OTP'})
+            
+        except Exception as e:
+            return JsonResponse({'status': 'failed', 'message': str(e)})
+    
+    return JsonResponse({'status': 'failed', 'message': 'Invalid request method'})
+
+@csrf_exempt
 def register_admin(request):
     if request.method == 'POST':
-        data = json.loads(request.body)
-        
-        company_info = {
-            'name': data.get('companyName'),
-            'description': data.get('companyDescription'),
-            'website': data.get('companyWebsite'),
-            'address': data.get('companyAddress'),
-            'hiring_manager': {
-                'name': data.get('hiringManagerName'),
-                'email': data.get('email'),
-                'phone': data.get('phone')
-            },
-            'created_at': datetime.datetime.utcnow()
-        }
-        
-        email = data.get('email')
-        password = data.get('password')
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            
+            if not email:
+                return JsonResponse({'status': 'failed', 'message': 'Email is required'})
 
-        # Check if email already exists
-        existing_user = info_collection.find_one({'email': email})
-        if existing_user:
-            return JsonResponse({'status': 'failed', 'message': 'Email already registered'})
+            # Check if email already exists
+            existing_user = info_collection.find_one({'email': email})
+            if existing_user:
+                return JsonResponse({'status': 'failed', 'message': 'Email already registered'})
+            
+            company_info = {
+                'name': data.get('companyName'),
+                'description': data.get('companyDescription'),
+                'website': data.get('companyWebsite'),
+                'address': data.get('companyAddress'),
+                'hiring_manager': {
+                    'name': data.get('hiringManagerName'),
+                    'email': email,
+                    'phone': data.get('phone')
+                },
+                'created_at': datetime.datetime.utcnow()
+            }
+            
+            password = data.get('password')
 
-        # First, insert the company details
-        company_result = company_collection.insert_one(company_info)
-        company_id = company_result.inserted_id
+            # Insert company details
+            company_result = company_collection.insert_one(company_info)
+            company_id = company_result.inserted_id
 
-        admin_info = {
-            'email': email,
-            'password': password,
-            'role': 'admin',
-            'company_id': str(company_id), 
-            'created_at': datetime.datetime.utcnow()
-        }
-        
-        info_collection.insert_one(admin_info)
-        return JsonResponse({'status': 'success'})
+            # Insert admin info with email_verified flag
+            admin_info = {
+                'email': email,
+                'password': password,
+                'role': 'admin',
+                'company_id': str(company_id),
+                'email_verified': True,  # Since we verify before registration
+                'created_at': datetime.datetime.utcnow()
+            }
+            
+            info_collection.insert_one(admin_info)
+            return JsonResponse({'status': 'success'})
+            
+        except Exception as e:
+            return JsonResponse({'status': 'failed', 'message': str(e)})
 
-    return JsonResponse({'status': 'failed', 'reason': 'Invalid request method'})
+    return JsonResponse({'status': 'failed', 'message': 'Invalid request method'})
 
 @csrf_exempt
 def register_user(request):
@@ -256,3 +327,90 @@ def verify_email_otp(request):
 
 def Home(request):
     return render(request, 'home.html')
+
+@csrf_exempt
+def forgot_password_request_otp(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            
+            if not email:
+                return JsonResponse({'status': 'failed', 'message': 'Email is required'})
+            
+            # Check if email exists
+            user = info_collection.find_one({'email': email})
+            if not user:
+                return JsonResponse({'status': 'failed', 'message': 'Email not found'})
+            
+            otp = generate_otp()
+            if send_otp_email(email, otp):
+                email_otp_store[email] = {
+                    'otp': otp,
+                    'timestamp': datetime.datetime.utcnow(),
+                    'attempts': 0
+                }
+                return JsonResponse({'status': 'success', 'message': 'OTP sent successfully'})
+            return JsonResponse({'status': 'failed', 'message': 'Failed to send OTP'})
+            
+        except Exception as e:
+            return JsonResponse({'status': 'failed', 'message': str(e)})
+    
+    return JsonResponse({'status': 'failed', 'message': 'Invalid request method'})
+
+@csrf_exempt
+def reset_password(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            new_password = data.get('password')
+            
+            if not email or not new_password:
+                return JsonResponse({'status': 'failed', 'message': 'Email and password are required'})
+            
+            # Update password in database
+            result = info_collection.update_one(
+                {'email': email},
+                {'$set': {'password': new_password}}
+            )
+            
+            if result.modified_count > 0:
+                return JsonResponse({'status': 'success', 'message': 'Password updated successfully'})
+            return JsonResponse({'status': 'failed', 'message': 'Failed to update password'})
+            
+        except Exception as e:
+            return JsonResponse({'status': 'failed', 'message': str(e)})
+    
+    return JsonResponse({'status': 'failed', 'message': 'Invalid request method'})
+
+@csrf_exempt
+def verify_otp(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            otp = data.get('otp')
+
+            stored_data = email_otp_store.get(email)
+            if not stored_data:
+                return JsonResponse({'status': 'failed', 'message': 'No OTP found for this email'})
+
+            if datetime.datetime.utcnow() - stored_data['timestamp'] > datetime.timedelta(minutes=5):
+                del email_otp_store[email]
+                return JsonResponse({'status': 'failed', 'message': 'OTP expired'})
+
+            if stored_data['otp'] != otp:
+                stored_data['attempts'] += 1
+                if stored_data['attempts'] >= 3:
+                    del email_otp_store[email]
+                    return JsonResponse({'status': 'failed', 'message': 'Too many attempts, OTP expired'})
+                return JsonResponse({'status': 'failed', 'message': 'Invalid OTP'})
+
+            # OTP is valid, proceed with the next steps
+            return JsonResponse({'status': 'success', 'message': 'OTP verified successfully'})
+
+        except Exception as e:
+            return JsonResponse({'status': 'failed', 'message': str(e)})
+
+    return JsonResponse({'status': 'failed', 'message': 'Invalid request method'})

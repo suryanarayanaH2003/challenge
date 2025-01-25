@@ -11,8 +11,9 @@ const RegisterUser = () => {
     password: '',
     confirmPassword: ''
   });
-  
+
   const [error, setError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
@@ -42,6 +43,31 @@ const RegisterUser = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
+    if (e.target.name === 'password') {
+      validatePassword(e.target.value);
+    }
+  };
+
+  const validatePassword = (password) => {
+    const lowercaseCount = (password.match(/[a-z]/g) || []).length;
+    const numberCount = (password.match(/[0-9]/g) || []).length;
+    const specialCharacterCount = (password.match(/[@$!%*?&]/g) || []).length;
+
+    let errorMessage = '';
+    if (lowercaseCount < 3) {
+      errorMessage += 'Password must have at least 3 lowercase letters. ';
+    }
+    if (numberCount < 3) {
+      errorMessage += 'Password must have at least 3 numbers. ';
+    }
+    if (specialCharacterCount < 1) {
+      errorMessage += 'Password must have at least 1 special character. ';
+    }
+    if (password.length < 7) {
+      errorMessage += 'Password must be at least 7 characters long. ';
+    }
+
+    setPasswordError(errorMessage.trim());
   };
 
   const handleEmailVerification = async () => {
@@ -53,7 +79,7 @@ const RegisterUser = () => {
       const response = await axios.post('http://localhost:8000/api/request-email-otp/', {
         email: formData.email
       });
-      
+
       if (response.data.status === 'success') {
         setShowOtpInput(true);
         setOtpTimer(300);
@@ -73,7 +99,7 @@ const RegisterUser = () => {
         email: formData.email,
         otp: otp
       });
-      
+
       if (response.data.status === 'success') {
         setEmailVerified(true);
         setShowOtpInput(false);
@@ -88,7 +114,7 @@ const RegisterUser = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!emailVerified) {
       setError('Please verify your email first');
       return;
@@ -96,6 +122,11 @@ const RegisterUser = () => {
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
+      return;
+    }
+
+    if (passwordError) {
+      setError('Please fix the password errors before submitting.');
       return;
     }
 
@@ -119,152 +150,242 @@ const RegisterUser = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="text-center text-3xl font-extrabold text-gray-900">
-          Register User Account
-        </h2>
+    <div className="register-container">
+      <style>
+        {`
+          .register-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #f7fafc; /* Light gray background */
+            padding: 20px;
+          }
+
+          .form-title {
+            margin-bottom: 20px;
+          }
+
+          .form-title h2 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333; /* Darker text color */
+          }
+
+          .form-wrapper {
+            background-color: white; /* White background for forms */
+            padding: 20px;
+            border-radius: 8px; /* Rounded corners */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+            width: 100%;
+            max-width: 400px; /* Max width for form */
+          }
+
+          .register-form {
+            display: flex;
+            flex-direction: column;
+          }
+
+          .form-group {
+            margin-bottom: 15px; /* Space between fields */
+          }
+
+          .form-input {
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%; /* Full width */
+            transition: border-color 0.3s; /* Smooth transition for focus */
+          }
+
+          .form-input:focus {
+            border-color: #007bff; /* Blue border on focus */
+            outline: none; /* Remove default outline */
+          }
+
+          .input-group {
+            display: flex;
+            align-items: center;
+          }
+
+          .verify-button {
+            padding: 12px;
+            background-color: #007bff; /* Primary button color */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s; /* Smooth transition for hover */
+            margin-left: 10px; /* Space between input and button */
+          }
+
+          .verify-button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+          }
+
+          .submit-button {
+            padding: 12px;
+            background-color: #007bff; /* Primary button color */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s; /* Smooth transition for hover */
+          }
+
+          .submit-button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+          }
+
+          .error-message {
+            color: red; /* Red color for error messages */
+            font-size: 0.875rem; /* Smaller font size */
+            margin-bottom: 10px; /* Space below error message */
+          }
+
+          .verified-message {
+            color: green; /* Green color for verified message */
+            font-size: 0.875rem; /* Smaller font size */
+          }
+
+          .login-link {
+            margin-top: 20px;
+            text-align: center;
+          }
+
+          .link {
+            color: #007bff; /* Link color */
+            text-decoration: none; /* Remove underline */
+          }
+
+          .link:hover {
+            text-decoration: underline; /* Underline on hover */
+          }
+        `}
+      </style>
+
+      <div className="form-title">
+        <h2>Register User Account</h2>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {error && (
-            <div className="mb-4 text-red-600 text-sm">{error}</div>
-          )}
+      <div className="form-wrapper">
+        {error && (
+          <div className="error-message">{error}</div>
+        )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Name
-              </label>
+        <form onSubmit={handleSubmit} className="register-form">
+          <div className="form-group">
+            <label>Name</label>
+            <input
+              type="text"
+              name="name"
+              required
+              value={formData.name}
+              onChange={handleChange}
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Email</label>
+            <div className="input-group">
               <input
-                type="text"
-                name="name"
+                type="email"
+                name="email"
                 required
-                value={formData.name}
+                value={formData.email}
                 onChange={handleChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                disabled={emailVerified}
+                className="form-input"
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <div className="mt-1 flex">
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  disabled={emailVerified}
-                  className="block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                />
-                {!emailVerified && (
-                  <button
-                    type="button"
-                    onClick={handleEmailVerification}
-                    disabled={isTimerRunning}
-                    className="ml-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-                  >
-                    {isTimerRunning ? formatTime(otpTimer) : 'Verify'}
-                  </button>
-                )}
-              </div>
-              {emailVerified && (
-                <span className="text-green-600 text-sm">Email verified ✓</span>
+              {!emailVerified && (
+                <button
+                  type="button"
+                  onClick={handleEmailVerification}
+                  disabled={isTimerRunning}
+                  className="verify-button"
+                >
+                  {isTimerRunning ? formatTime(otpTimer) : 'Verify'}
+                </button>
               )}
             </div>
-
-            {showOtpInput && !emailVerified && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Enter OTP
-                </label>
-                <div className="mt-1 flex">
-                  <input
-                    type="text"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    className="block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleVerifyOtp}
-                    className="ml-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-                  >
-                    Verify OTP
-                  </button>
-                </div>
-              </div>
+            {emailVerified && (
+              <span className="verified-message">Email verified ✓</span>
             )}
+          </div>
 
-            {/* Rest of the form fields */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Mobile
-              </label>
-              <input
-                type="tel"
-                name="mobile"
-                required
-                value={formData.mobile}
-                onChange={handleChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                type="password"
-                name="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                required
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              />
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-              >
-                Register
-              </button>
-            </div>
-          </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Already have an account?{' '}
-                  <Link to="/login" className="text-blue-600 hover:text-blue-500">
-                    Login
-                  </Link>
-                </span>
+          {showOtpInput && !emailVerified && (
+            <div className="form-group">
+              <label>Enter OTP</label>
+              <div className="input-group">
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  className="form-input"
+                />
+                <button
+                  type="button"
+                  onClick={handleVerifyOtp}
+                  className="verify-button"
+                >
+                  Verify OTP
+                </button>
               </div>
             </div>
+          )}
+
+          <div className="form-group">
+            <label>Mobile</label>
+            <input
+              type="tel"
+              name="mobile"
+              required
+              value={formData.mobile}
+              onChange={handleChange}
+              className="form-input"
+            />
           </div>
+
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              name="password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+              className="form-input"
+            />
+            {passwordError && <p style={{ color: 'red' }}>{passwordError}</p>}
+          </div>
+
+          <div className="form-group">
+            <label>Confirm Password</label>
+            <input
+              type="password"
+              name="confirmPassword"
+              required
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <button
+              type="submit"
+              className="submit-button"
+            >
+              Register
+            </button>
+          </div>
+        </form>
+
+        <div className="login-link">
+          <span>Already have an account? </span>
+          <Link to="/login" className="link">Login</Link>
         </div>
       </div>
     </div>

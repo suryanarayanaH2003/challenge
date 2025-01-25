@@ -90,7 +90,7 @@ const LoginAdmin = () => {
     <div style={styles.container}>
       <form style={styles.form} onSubmit={handleSubmit}>
         <h1 style={styles.title}>Admin Login</h1>
-        
+
         <div style={styles.formGroup}>
           <label style={styles.label} htmlFor="email">Email Address</label>
           <input
@@ -136,6 +136,20 @@ const LoginAdmin = () => {
             style={{ color: '#3182ce', textDecoration: 'none' }}
           >
             Sign up here
+          </a>
+        </p>
+
+        <p style={{ textAlign: 'center', marginTop: '1rem' }}>
+          Forgot your password?{' '}
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate('/forgot-password');
+            }}
+            style={{ color: '#3182ce', textDecoration: 'none' }}
+          >
+            Reset it here
           </a>
         </p>
       </form>

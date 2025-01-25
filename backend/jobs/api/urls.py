@@ -11,6 +11,13 @@ urlpatterns = [
     path('api/verify-email-otp/', verify_email_otp, name='verify-email-otp'),
     path('register/user/', register_user, name='register-user'),
     path('home/', Home, name='home'),
+    path('api/request-admin-email-otp/', request_admin_email_otp, name='request-admin-email-otp'),
+    path('api/verify-admin-email-otp/', verify_admin_email_otp, name='verify-admin-email-otp'),
+    path('register/admin/', register_admin, name='register-admin'),
+    path('api/forgot-password/request-otp/', forgot_password_request_otp, name='forgot-password-request-otp'),
+    path('api/forgot-password/verify-otp/', verify_otp, name='verify-otp'),  # Ensure this line is present
+    path('api/reset-password/', reset_password, name='reset-password'),
+
 ]
 
 
