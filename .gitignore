@@ -1,0 +1,26 @@
+# Environment variables
+.myenv
+/backend/.myenv
+backend/myenv/
+/myenv
+
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Dependency directories
+jspm_packages/
+
+# Ignore migration files
+migrations/
+*/migrations/
+**/migrations/
+**/migrations/*.py
+**/migrations/*.sql
+
+backend/jobs/api/__pycache__/urls.cpython-312.pyc
+backend/jobs/api/__pycache__/views.cpython-312.pyc
