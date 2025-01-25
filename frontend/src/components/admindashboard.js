@@ -14,9 +14,29 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     // Check if admin is logged in
+    let timeoutId;
+  
+    const logoutUser = () => {
+      window.location.href = "{% url 'logout' %}"; // Redirect to logout URL
+    };
+  
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(logoutUser, 30000); // 30 seconds
+    };
+  
+    // Event listeners for user activity
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    window.addEventListener('click', resetTimer);
+    window.addEventListener('scroll', resetTimer);
+  
+    // Start the timer
+    resetTimer();
+    
     const storedAdminData = localStorage.getItem('adminData');
     if (!storedAdminData) {
-      navigate('/login-admin');
+      navigate('');
       return;
     }
 

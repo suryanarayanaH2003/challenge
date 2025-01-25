@@ -10,6 +10,7 @@ import Userdashboard from './components/userdashboard';
 import Home from './components/home';
 import User from './components/user';
 import UserProfile from './components/UserProfile';
+import ForgotPassword from './components/forgotpassword';
 
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
         <Route path="/userdashboard" element={<Userdashboard />} />
         <Route path="/user" element={<User />} />
         <Route path="/user-profile" element={<UserProfile />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

@@ -127,43 +127,105 @@ const ForgotPassword = () => {
     };
 
     return (
-        <div>
-            <h2>Reset Password</h2>
-            {error && <div>{error}</div>}
-            {message && <div>{message}</div>}
-            <div>
-                <label>Email Address</label>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                {!showOtpInput && (
-                    <button onClick={handleSendOtp} disabled={!email || isTimerRunning}>
-                        {isTimerRunning ? `Resend OTP in ${Math.floor(otpTimer / 60)}:${otpTimer % 60}` : 'Send OTP'}
-                    </button>
+        <div className="forgot-password-container">
+            <style>
+                {`
+                .forgot-password-container {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    background-color: #f4f4f4;
+                }
+
+                .forgot-password-card {
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                    width: 300px;
+                }
+
+                h2 {
+                    text-align: center;
+                    margin-bottom: 20px;
+                }
+
+                .form-group {
+                    margin-bottom: 15px;
+                }
+
+                .input-field {
+                    width: 100%;
+                    padding: 10px;
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                }
+
+                .btn {
+                    width: 100%;
+                    padding: 10px;
+                    background-color: #007bff;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                }
+
+                .btn:hover {
+                    background-color: #0056b3;
+                }
+
+                .error-message {
+                    color: red;
+                    font-size: 0.9em;
+                }
+
+                .success-message {
+                    color: green;
+                    font-size: 0.9em;
+                    text-align: center;
+                }
+                `}
+            </style>
+            <div className="forgot-password-card">
+                <h2>Reset Password</h2>
+                {error && <div className="error-message">{error}</div>}
+                {message && <div className="success-message">{message}</div>}
+                <div className="form-group">
+                    <label>Email Address</label>
+                    <input type="email" className="input-field" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    {!showOtpInput && (
+                        <button className="btn" onClick={handleSendOtp} disabled={!email || isTimerRunning}>
+                            {isTimerRunning ? `Resend OTP in ${Math.floor(otpTimer / 60)}:${otpTimer % 60}` : 'Send OTP'}
+                        </button>
+                    )}
+                </div>
+                {showOtpInput && (
+                    <div className="form-group">
+                        <label>Enter OTP</label>
+                        <input type="text" className="input-field" value={otp} onChange={(e) => setOtp(e.target.value)} />
+                        <button className="btn" onClick={handleVerifyOtp}>Verify OTP</button>
+                    </div>
+                )}
+                {showPasswordInput && (
+                    <>
+                        <div className="form-group">
+                            <label>New Password</label>
+                            <input type="password" className="input-field" value={newPassword} onChange={(e) => {
+                                setNewPassword(e.target.value);
+                                validatePassword(e.target.value);
+                            }} />
+                            {passwordError && <p className="error-message">{passwordError}</p>}
+                        </div>
+                        <div className="form-group">
+                            <label>Confirm Password</label>
+                            <input type="password" className="input-field" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                        </div>
+                        <button className="btn" onClick={handleResetPassword}>Reset Password</button>
+                    </>
                 )}
             </div>
-            {showOtpInput && (
-                <div>
-                    <label>Enter OTP</label>
-                    <input type="text" value={otp} onChange={(e) => setOtp(e.target.value)} />
-                    <button onClick={handleVerifyOtp}>Verify OTP</button>
-                </div>
-            )}
-            {showPasswordInput && (
-                <>
-                    <div>
-                        <label>New Password</label>
-                        <input type="password" value={newPassword} onChange={(e) => {
-                            setNewPassword(e.target.value);
-                            validatePassword(e.target.value);
-                        }} />
-                        {passwordError && <p>{passwordError}</p>}
-                    </div>
-                    <div>
-                        <label>Confirm Password</label>
-                        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-                    </div>
-                    <button onClick={handleResetPassword}>Reset Password</button>
-                </>
-            )}
         </div>
     );
 };

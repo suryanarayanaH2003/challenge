@@ -40,6 +40,11 @@ const UserProfile = () => {
     fetchApplications();
   }, [navigate]);
 
+  const handleLogout = () => {
+    localStorage.removeItem('token'); // Clear JWT token
+    navigate('/login-user'); // Redirect to login page
+  };
+
   const styles = {
     container: {
       minHeight: '100vh',
@@ -145,6 +150,16 @@ const UserProfile = () => {
     },
     backButton: {
       marginBottom: '1rem',
+    },
+    logoutButton: {
+      backgroundColor: '#3182ce',
+      color: '#fff',
+      padding: '0.5rem 1rem',
+      borderRadius: '0.5rem',
+      border: 'none',
+      cursor: 'pointer',
+      fontSize: '1rem',
+      transition: 'background-color 0.3s ease',
     },
   };
 
@@ -260,6 +275,10 @@ const UserProfile = () => {
             </div>
           )}
         </div>
+
+        <button style={styles.logoutButton} onClick={handleLogout}>
+          Logout
+        </button>
       </div>
     </div>
   );

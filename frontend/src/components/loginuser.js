@@ -91,9 +91,9 @@ const LoginUser = () => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>User Login</h1>
-      {error && <p style={styles.error}>{error}</p>}
-      <form onSubmit={handleSubmit} style={styles.form}>
+      <form style={styles.form} onSubmit={handleSubmit}>
+        <h1 style={styles.title}>User Login</h1>
+
         <div style={styles.formGroup}>
           <label style={styles.label} htmlFor="email">Email Address</label>
           <input
@@ -119,6 +119,8 @@ const LoginUser = () => {
             required
           />
         </div>
+
+        {error && <p style={styles.error}>{error}</p>}
 
         <div style={styles.buttonContainer}>
           <Button type="submit" style={{ width: '100%' }}>

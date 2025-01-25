@@ -26,6 +26,8 @@ urlpatterns = [
     path('user-applications/', user_applications, name='user_applications'),
     path('job-applicants/<str:job_id>/', job_applicants, name='job_applicants'),
     path('update-application-status/<str:application_id>/', update_application_status, name='update_application_status'),
+    path('logout/', logout_view, name='logout'),  # Add the logout URL
+
 
 ]
 

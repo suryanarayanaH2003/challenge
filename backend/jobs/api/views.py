@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -9,6 +9,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import random
 import string
+from django.contrib.auth.decorators import login_required
 
 
 from pymongo import MongoClient
@@ -872,3 +873,26 @@ def update_application_status(request, application_id):
         }, status=405)
         response["Access-Control-Allow-Origin"] = "http://localhost:3000"
         return response 
+
+@login_required
+# def user_dashboard(request):
+#     # Fetch jobs and user data for the dashboard
+#     jobs = Job.objects.all()  # Fetch all jobs (or filter as needed)
+#     required
+# deeturn render(request, 'user_dashboard.html', {'jobs': jobs})
+
+# @login_rf admin_dashboard(request):
+    # Fetch admin-specific data for the dashboard
+    # return render(request, 'admin_dashboard.html')
+
+# Example of a view that returns jobs as JSON
+# @login_required
+# def fetch_jobs(request):
+#     if request.method == 'GET':
+#         jobs = list(Job.objects.values())  # Convert queryset to list of dicts
+#         return JsonResponse({'status': 'success', 'jobs': jobs})
+#     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}) 
+
+def logout_view(request):
+    logout(request)  # Log out the user
+    return redirect('login')  # Redirect to the login page
