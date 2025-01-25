@@ -1,35 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import Button from './ui/button';
 
 const LoginAdmin = () => {
-  const navigate = useNavigate()
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-  const [message, setMessage] = useState('');
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    const url = 'http://localhost:8000/login/admin/';
-    try {
-      const response = await axios.post(url, formData);
-      if (response.data.status === 'success') {
-        // Store user data in localStorage
-        localStorage.setItem('adminData', JSON.stringify(response.data.user));
-        navigate('/admindashboard');
-      } else {
-        setMessage('Login failed.');
-      }
-    } catch (error) {
-      setMessage('An error occurred.');
+    if (!email || !password) {
+      setError('Please fill in all fields');
+      return;
     }
+    // Simulate successful login
+    navigate('/admin-dashboard'); // Redirect to admin dashboard
   };
 
   const styles = {
@@ -84,75 +70,47 @@ const LoginAdmin = () => {
     buttonContainer: {
       marginTop: '2rem',
     },
+    footer: {
+      textAlign: 'center',
+      marginTop: '1rem',
+    },
+    link: {
+      color: '#3182ce',
+      textDecoration: 'none',
+      cursor: 'pointer',
+    },
   };
 
   return (
     <div style={styles.container}>
-      <form style={styles.form} onSubmit={handleSubmit}>
-        <h1 style={styles.title}>Admin Login</h1>
-
-        <div style={styles.formGroup}>
-          <label style={styles.label} htmlFor="email">Email Address</label>
+      <h1 style={styles.title}>Admin Login</h1>
+      {error && <p style={styles.error}>{error}</p>}
+      <form onSubmit={handleSubmit} style={styles.form}>
+        <div style={styles.inputGroup}>
+          <label style={styles.label}>Email</label>
           <input
-            style={styles.input}
             type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        <div style={styles.formGroup}>
-          <label style={styles.label} htmlFor="password">Password</label>
-          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             style={styles.input}
-            type="password"
-            id="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
             required
           />
         </div>
-
-        {message && <p style={styles.error}>{message}</p>}
-
-        <div style={styles.buttonContainer}>
-          <Button type="submit" style={{ width: '100%' }}>
-            Login
-          </Button>
+        <div style={styles.inputGroup}>
+          <label style={styles.label}>Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={styles.input}
+            required
+          />
         </div>
-
-        <p style={{ textAlign: 'center', marginTop: '1rem' }}>
-          Don't have an account?{' '}
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/register-admin');
-            }}
-            style={{ color: '#3182ce', textDecoration: 'none' }}
-          >
-            Sign up here
-          </a>
-        </p>
-
-        <p style={{ textAlign: 'center', marginTop: '1rem' }}>
-          Forgot your password?{' '}
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/forgot-password');
-            }}
-            style={{ color: '#3182ce', textDecoration: 'none' }}
-          >
-            Reset it here
-          </a>
-        </p>
+        <Button type="submit">Login</Button>
       </form>
+      <p style={styles.footer}>
+        Don't have an account? <span style={styles.link} onClick={() => navigate('/register-admin')}>Sign Up</span>
+      </p>
     </div>
   );
 };

@@ -20,6 +20,8 @@ const UserDashboard = () => {
         const user = JSON.parse(localStorage.getItem('user'));
         if (user) {
           setUserData(user);
+        } else {
+          navigate('/login-user'); // Redirect to login if no user data
         }
 
         const response = await axios.get("http://localhost:8000/fetchjobs");
@@ -36,7 +38,38 @@ const UserDashboard = () => {
     };
 
     fetchData();
-  }, []);
+  }, [navigate]);
+
+  // Session management
+  useEffect(() => {
+    let timeoutId;
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        localStorage.removeItem('user'); // Clear user session
+        navigate('/login-user'); // Redirect to login after inactivity
+      }, 10000); // 1 minute
+    };
+
+    // Event listeners for user activity
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    window.addEventListener('click', resetTimer);
+    window.addEventListener('scroll', resetTimer);
+
+    // Start the timer
+    resetTimer();
+
+    // Cleanup event listeners and timeout on component unmount
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+      window.removeEventListener('click', resetTimer);
+      window.removeEventListener('scroll', resetTimer);
+    };
+  }, [navigate]);
 
   const fetchCompanyDetails = async (companyId) => {
     try {

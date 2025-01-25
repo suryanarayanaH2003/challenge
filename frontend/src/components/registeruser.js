@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import Button from './ui/button';
 
 const RegisterUser = () => {
   const navigate = useNavigate();
@@ -374,18 +375,14 @@ const RegisterUser = () => {
           </div>
 
           <div className="form-group">
-            <button
-              type="submit"
-              className="submit-button"
-            >
-              Register
-            </button>
+            <Button type="submit">Register</Button>
           </div>
         </form>
 
         <div className="login-link">
           <span>Already have an account? </span>
-          <Link to="/login" className="link">Login</Link>
+          <span onClick={() => navigate('/login-user')}>Login</span>
+
         </div>
       </div>
     </div>

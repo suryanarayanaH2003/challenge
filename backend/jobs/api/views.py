@@ -527,4 +527,348 @@ def fetch_jobs(request):
         return JsonResponse({"status": "error", "message": "Invalid request method."}, status=405)
     
 
-  
+@csrf_exempt
+def get_company_details(request, company_id):
+    """
+    API to get company details by company ID
+    """
+    if request.method == "GET":
+        try:
+            company = company_collection.find_one({'_id': ObjectId(company_id)})
+            if company:
+                company['_id'] = str(company['_id'])
+                return JsonResponse({
+                    'status': 'success',
+                    'company': company
+                })
+            return JsonResponse({
+                'status': 'failed',
+                'message': 'Company not found'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            })
+    return JsonResponse({
+        'status': 'failed',
+        'reason': 'Invalid request method'
+    })
+
+@csrf_exempt
+def update_company_details(request, company_id):
+    """
+    API to update company details
+    """
+    if request.method == "PUT":
+        try:
+            data = json.loads(request.body)
+            update_data = {
+                'name': data.get('companyName'),
+                'description': data.get('companyDescription'),
+                'website': data.get('companyWebsite'),
+                'address': data.get('companyAddress'),
+                'hiring_manager': {
+                    'name': data.get('hiringManagerName'),
+                    'email': data.get('email'),
+                    'phone': data.get('phone')
+                },
+                'updated_at': datetime.datetime.utcnow()
+            }
+            
+            result = company_collection.update_one(
+                {'_id': ObjectId(company_id)},
+                {'$set': update_data}
+            )
+            
+            if result.modified_count > 0:
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Company details updated successfully'
+                })
+            return JsonResponse({
+                'status': 'failed',
+                'message': 'Company not found or no changes made'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            })
+    return JsonResponse({
+        'status': 'failed',
+        'reason': 'Invalid request method'
+    })
+
+@csrf_exempt
+def apply_job(request):
+    """
+    API to submit a job application
+    """
+    if request.method == "OPTIONS":
+        response = JsonResponse({})
+        response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        response["Access-Control-Allow-Headers"] = "Content-Type, X-User-Email, Accept"
+        return response
+
+    if request.method == "POST":
+        try:
+            # Get user's email from request
+            user_email = request.headers.get('X-User-Email')
+            if not user_email:
+                return JsonResponse({"status": "error", "message": "User not authenticated"}, status=401)
+
+            # Get user details
+            user = info_collection.find_one({'email': user_email, 'role': 'user'})
+            if not user:
+                return JsonResponse({"status": "error", "message": "User not found"}, status=404)
+
+            # Parse the request body
+            try:
+                body = json.loads(request.body.decode("utf-8"))
+                print("Received application data:", body)  # Debug print
+            except json.JSONDecodeError as e:
+                return JsonResponse({"status": "error", "message": f"Invalid JSON: {str(e)}"}, status=400)
+
+            # Validate required fields
+            required_fields = ["name", "qualification", "skills", "dateOfBirth", 
+                             "location", "experience", "expectedSalary", "job_id", 
+                             "company_id", "company_name", "job_title"]
+            missing_fields = [field for field in required_fields if field not in body]
+            if missing_fields:
+                return JsonResponse({
+                    "status": "error",
+                    "message": f"Missing required fields: {', '.join(missing_fields)}"
+                }, status=400)
+
+            # Create application document
+            application = {
+                "name": body["name"],
+                "qualification": body["qualification"],
+                "skills": body["skills"],
+                "date_of_birth": body["dateOfBirth"],
+                "location": body["location"],
+                "experience": body["experience"],
+                "expected_salary": body["expectedSalary"],
+                "job_id": body["job_id"],
+                "company_id": body["company_id"],
+                "company_name": body["company_name"],
+                "job_title": body["job_title"],
+                "applicant_email": user_email,
+                "status": "pending",
+                "applied_date": datetime.datetime.utcnow()
+            }
+
+            # Check if user has already applied for this job
+            existing_application = job_applications_collection.find_one({
+                "job_id": body["job_id"],
+                "applicant_email": user_email
+            })
+
+            if existing_application:
+                return JsonResponse({
+                    "status": "error",
+                    "message": "You have already applied for this job"
+                }, status=400)
+
+            # Insert the application into the collection
+            result = job_applications_collection.insert_one(application)
+            
+            response = JsonResponse({
+                "status": "success",
+                "message": "Application submitted successfully!"
+            }, status=201)
+            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            return response
+
+        except Exception as e:
+            print("Error in apply_job:", str(e))  # Debug print
+            response = JsonResponse({
+                "status": "error",
+                "message": f"Server error: {str(e)}"
+            }, status=500)
+            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            return response
+    else:
+        response = JsonResponse({
+            "status": "error",
+            "message": "Method not allowed"
+        }, status=405)
+        response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        return response
+
+@csrf_exempt
+def user_applications(request):
+    """
+    API to get all job applications for a user
+    """
+    if request.method == "GET":
+        try:
+            # Get user's email from request
+            user_email = request.headers.get('X-User-Email')
+            if not user_email:
+                return JsonResponse({"status": "error", "message": "User not authenticated"}, status=401)
+
+            # Get user details
+            user = info_collection.find_one({'email': user_email, 'role': 'user'})
+            if not user:
+                return JsonResponse({"status": "error", "message": "User not found"}, status=404)
+
+            # Fetch all applications for this user
+            applications = list(job_applications_collection.find({"applicant_email": user_email}))
+
+            # Convert ObjectId to string for each application
+            for application in applications:
+                application["_id"] = str(application["_id"])
+
+            response = JsonResponse({
+                "status": "success",
+                "applications": applications
+            })
+            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            return response
+
+        except Exception as e:
+            print("Error in user_applications:", str(e))
+            response = JsonResponse({
+                "status": "error",
+                "message": f"Server error: {str(e)}"
+            }, status=500)
+            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            return response
+    else:
+        response = JsonResponse({
+            "status": "error",
+            "message": "Method not allowed"
+        }, status=405)
+        response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        return response
+
+@csrf_exempt
+def job_applicants(request, job_id):
+    """
+    API to get all applicants for a specific job
+    """
+    if request.method == "GET":
+        try:
+            # Get admin's email from request
+            admin_email = request.headers.get('X-User-Email')
+            if not admin_email:
+                return JsonResponse({"status": "error", "message": "Admin not authenticated"}, status=401)
+
+            # Verify admin and get their company
+            admin = info_collection.find_one({'email': admin_email, 'role': 'admin'})
+            if not admin:
+                return JsonResponse({"status": "error", "message": "Admin not found"}, status=404)
+
+            # Get the job to verify it belongs to this admin's company
+            job = job_collection.find_one({'_id': ObjectId(job_id)})
+            if not job or job.get('posted_by') != admin_email:
+                return JsonResponse({"status": "error", "message": "Job not found or unauthorized"}, status=404)
+
+            # Fetch all applications for this job
+            applications = list(job_applications_collection.find({"job_id": job_id}))
+
+            # Convert ObjectId to string for each application
+            for application in applications:
+                application["_id"] = str(application["_id"])
+
+            response = JsonResponse({
+                "status": "success",
+                "applicants": applications
+            })
+            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            return response
+
+        except Exception as e:
+            print("Error in job_applicants:", str(e))
+            response = JsonResponse({
+                "status": "error",
+                "message": f"Server error: {str(e)}"
+            }, status=500)
+            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            return response
+    else:
+        response = JsonResponse({
+            "status": "error",
+            "message": "Method not allowed"
+        }, status=405)
+        response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        return response
+
+@csrf_exempt
+def update_application_status(request, application_id):
+    """
+    API to update the status of a job application
+    """
+    if request.method == "OPTIONS":
+        response = JsonResponse({})
+        response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        response["Access-Control-Allow-Methods"] = "PUT, OPTIONS"
+        response["Access-Control-Allow-Headers"] = "Content-Type, X-User-Email"
+        return response
+
+    if request.method == "PUT":
+        try:
+            # Get admin's email from request
+            admin_email = request.headers.get('X-User-Email')
+            if not admin_email:
+                return JsonResponse({"status": "error", "message": "Admin not authenticated"}, status=401)
+
+            # Verify admin
+            admin = info_collection.find_one({'email': admin_email, 'role': 'admin'})
+            if not admin:
+                return JsonResponse({"status": "error", "message": "Admin not found"}, status=404)
+
+            # Get the application
+            application = job_applications_collection.find_one({'_id': ObjectId(application_id)})
+            if not application:
+                return JsonResponse({"status": "error", "message": "Application not found"}, status=404)
+
+            # Get the job to verify it belongs to this admin's company
+            job = job_collection.find_one({'_id': ObjectId(application['job_id'])})
+            if not job or job.get('posted_by') != admin_email:
+                return JsonResponse({"status": "error", "message": "Unauthorized"}, status=403)
+
+            # Parse the request body
+            body = json.loads(request.body.decode("utf-8"))
+            new_status = body.get('status')
+            if new_status not in ['accepted', 'rejected', 'pending']:
+                return JsonResponse({"status": "error", "message": "Invalid status"}, status=400)
+
+            # Update the application status
+            result = job_applications_collection.update_one(
+                {'_id': ObjectId(application_id)},
+                {'$set': {'status': new_status}}
+            )
+
+            if result.modified_count > 0:
+                response = JsonResponse({
+                    "status": "success",
+                    "message": "Application status updated successfully"
+                })
+            else:
+                response = JsonResponse({
+                    "status": "error",
+                    "message": "Failed to update application status"
+                }, status=400)
+
+            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            return response
+
+        except Exception as e:
+            print("Error in update_application_status:", str(e))
+            response = JsonResponse({
+                "status": "error",
+                "message": f"Server error: {str(e)}"
+            }, status=500)
+            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            return response
+    else:
+        response = JsonResponse({
+            "status": "error",
+            "message": "Method not allowed"
+        }, status=405)
+        response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        return response 

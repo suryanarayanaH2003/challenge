@@ -1,220 +1,44 @@
-/* App.css */
-
-/* General Styles */
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background-color: #000000;
-  /* Black background for the entire app */
-  color: #ffffff;
-  /* Default text color */
-}
-
-/* Container Styles */
-.container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-}
-
-/* Heading Styles */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  margin: 0;
-  padding: 0;
-}
-
-/* Button Styles */
-button {
-  background-color: #3182ce;
-  /* Blue background */
-  color: #ffffff;
-  /* White text */
-  border: none;
-  border-radius: 5px;
-  padding: 12px 24px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-  /* Smooth transition */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  /* Subtle shadow for depth */
-}
-
-button:hover {
-  background-color: #2b6cb0;
-  /* Darker blue on hover */
-  transform: translateY(-2px);
-  /* Slightly lift the button on hover */
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-  /* Increase shadow on hover */
-}
-
-button:active {
-  transform: scale(0.95);
-  /* Slightly shrink on click */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  /* Reduce shadow on click */
-}
-
-/* Section Styles */
-.section {
-  background-color: #ffffff;
-  /* White background for sections */
-  color: #2d3748;
-  /* Dark text color */
-  padding: 2rem;
-  border-radius: 1rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  margin: 1rem;
-  min-width: 300px;
-}
-
-/* Animation Styles */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes zoomIn {
-  from {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* Responsive Styles */
-@media (max-width: 768px) {
-  .container {
-    padding: 1rem;
-    /* Reduce padding on smaller screens */
-  }
-
-  button {
-    width: 100%;
-    /* Full width buttons on small screens */
-  }
-}
-
-/* Centering the main app container */
 .App {
   text-align: center;
   padding: 20px;
 }
 
-/* Main Container */
-.container {
-  min-height: 100vh;
-  /* Full height */
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background-color: #f7fafc;
-  /* Light gray background */
-}
-
-/* Form Container */
 .form-container {
   max-width: 400px;
-  width: 100%;
-  /* Full width on small screens */
+  margin: 0 auto;
   padding: 20px;
   border: 1px solid #ccc;
-  border-radius: 8px;
-  /* Rounded corners */
-  background-color: white;
-  /* White background for forms */
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  /* Subtle shadow */
+  border-radius: 5px;
 }
 
-/* Title Styles */
-.title {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #333;
-  /* Darker text color */
-  margin-bottom: 20px;
-  /* Space below title */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-/* Input, Select, and Textarea Styles */
-input,
-select,
-textarea {
-  padding: 12px;
-  /* Increased padding for better touch targets */
+input, select, textarea {
+  padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  width: 100%;
-  /* Full width */
-  margin-bottom: 15px;
-  /* Space between fields */
-  transition: border-color 0.3s;
-  /* Smooth transition for focus */
 }
 
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: #007bff;
-  /* Blue border on focus */
-  outline: none;
-  /* Remove default outline */
+button {
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
-/* Text Display Styles */
+button:hover {
+  background-color: #0056b3;
+}
+
 .text-display {
   margin-top: 20px;
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  background-color: #f9f9f9;
-  /* Light background for text display */
-}
-
-/* Error Message Styles */
-.error-message {
-  color: red;
-  /* Red color for error messages */
-  font-size: 0.875rem;
-  /* Smaller font size */
-}
-
-/* Responsive Styles */
-@media (max-width: 600px) {
-  .form-container {
-    width: 90%;
-    /* Full width on small screens */
-  }
 }

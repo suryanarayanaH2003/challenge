@@ -230,13 +230,22 @@ const RegisterAdmin = () => {
       cursor: 'pointer',
       transition: 'background-color 0.2s',
     },
+    footer: {
+      textAlign: 'center',
+      marginTop: '1rem',
+    },
+    link: {
+      color: '#3182ce',
+      textDecoration: 'none',
+      cursor: 'pointer',
+    },
   };
 
   return (
     <div style={styles.container}>
+      <h1 style={styles.title}>Register Admin</h1>
+      {error && <p style={styles.error}>{error}</p>}
       <form style={styles.form} onSubmit={handleSubmit}>
-        <h1 style={styles.title}>Company Registration</h1>
-
         <h2 style={styles.subtitle}>Company Information</h2>
         <div style={styles.formGroup}>
           <label style={styles.label} htmlFor="companyName">Company Name</label>
@@ -397,28 +406,15 @@ const RegisterAdmin = () => {
           />
         </div>
 
-        {error && <p style={styles.error}>{error}</p>}
-
         <div style={styles.buttonContainer}>
           <Button type="submit" style={{ width: '100%' }}>
             Register Company
           </Button>
         </div>
-
-        <p style={{ textAlign: 'center', marginTop: '1rem' }}>
-          Already have an account?{' '}
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/login-admin');
-            }}
-            style={{ color: '#3182ce', textDecoration: 'none' }}
-          >
-            Login here
-          </a>
-        </p>
       </form>
+      <p style={styles.footer}>
+        Already have an account? <span style={styles.link} onClick={() => navigate('/login-admin')}>Login</span>
+      </p>
     </div>
   );
 };
