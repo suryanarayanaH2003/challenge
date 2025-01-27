@@ -21,6 +21,7 @@ db = client['job-portal']
 info_collection = db['info']
 job_collection = db['jobs']
 company_collection = db['companies']  
+profile_collection = db['profiles']
 job_applications_collection = db['job_applications']
 
 
@@ -394,9 +395,6 @@ def post_job(request):
     """
     if request.method == "OPTIONS":
         response = JsonResponse({})
-        response["Access-Control-Allow-Origin"] = "http://localhost:3000"
-        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Content-Type, X-User-Email, Accept"
         return response
 
     if request.method == "POST":
@@ -452,7 +450,7 @@ def post_job(request):
                 "status": "success",
                 "message": "Job posted successfully!"
             }, status=201)
-            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            
             return response
 
         except Exception as e:
@@ -461,14 +459,14 @@ def post_job(request):
                 "status": "error",
                 "message": f"Server error: {str(e)}"
             }, status=500)
-            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            
             return response
     else:
         response = JsonResponse({
             "status": "error",
             "message": "Method not allowed"
         }, status=405)
-        response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        
         return response
     
 
@@ -606,8 +604,8 @@ def apply_job(request):
     """
     if request.method == "OPTIONS":
         response = JsonResponse({})
-        response["Access-Control-Allow-Origin"] = "http://localhost:3000"
-        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        
+       
         response["Access-Control-Allow-Headers"] = "Content-Type, X-User-Email, Accept"
         return response
 
@@ -678,7 +676,7 @@ def apply_job(request):
                 "status": "success",
                 "message": "Application submitted successfully!"
             }, status=201)
-            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            
             return response
 
         except Exception as e:
@@ -687,20 +685,53 @@ def apply_job(request):
                 "status": "error",
                 "message": f"Server error: {str(e)}"
             }, status=500)
-            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            
             return response
     else:
         response = JsonResponse({
             "status": "error",
             "message": "Method not allowed"
         }, status=405)
-        response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        
         return response
 
 @csrf_exempt
-def user_applications(request):
+def guest_dashboard(request):
     """
-    API to get all job applications for a user
+    API to get jobs posted by admin for guest users
+    """
+    if request.method == "GET":
+        try:
+            # Fetch all jobs posted by admin
+            jobs = list(job_collection.find({}))
+
+            # Convert ObjectId to string for each job
+            for job in jobs:
+                job["_id"] = str(job["_id"])
+
+            response = JsonResponse({
+                "status": "success",
+                "jobs": jobs
+            })
+            
+            return response
+
+        except Exception as e:
+            print("Error in guest_dashboard:", str(e))
+            response = JsonResponse({
+                "status": "error",
+                "message": f"Server error: {str(e)}"
+            }, status=500)
+            
+            return response
+    else:
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def user_profile(request):
+    """
+    API to get user profile and job applications, and update user profile
     """
     if request.method == "GET":
         try:
@@ -721,28 +752,68 @@ def user_applications(request):
             for application in applications:
                 application["_id"] = str(application["_id"])
 
+            # Fetch user profile details from profile_collection
+            profile = profile_collection.find_one({'email': user_email})
+            if profile:
+                profile['_id'] = str(profile['_id'])
+
             response = JsonResponse({
                 "status": "success",
-                "applications": applications
+                "applications": applications,
+                "profile": profile
             })
-            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            
             return response
 
         except Exception as e:
-            print("Error in user_applications:", str(e))
+            print("Error in user_profile:", str(e))
             response = JsonResponse({
                 "status": "error",
                 "message": f"Server error: {str(e)}"
             }, status=500)
-            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            
             return response
+
+    elif request.method == "PUT":
+        try:
+            # Get user's email from request
+            user_email = request.headers.get('X-User-Email')
+            if not user_email:
+                return JsonResponse({"status": "error", "message": "User not authenticated"}, status=401)
+
+            # Get user details
+            user = info_collection.find_one({'email': user_email})
+            if not user:
+                return JsonResponse({"status": "error", "message": "User not found"}, status=404)
+
+            # Parse the request body
+            data = json.loads(request.body)
+            degree = data.get('degree')
+            designation = data.get('designation')
+            skills = data.get('skills')
+
+            if not degree or not designation or not skills:
+                return JsonResponse({"status": "error", "message": "Degree, designation, and skills are required"}, status=400)
+
+            # Update user profile in profile_collection
+            profile_collection.update_one(
+                {'email': user_email},
+                {'$set': {
+                    'degree': degree,
+                    'designation': designation,
+                    'skills': skills
+                }},
+                upsert=True
+            )
+
+            return JsonResponse({"status": "success", "message": "Profile updated successfully"})
+
+        except Exception as e:
+            print("Error in user_profile:", str(e))
+            return JsonResponse({"status": "error", "message": f"Server error: {str(e)}"}, status=500)
     else:
-        response = JsonResponse({
-            "status": "error",
-            "message": "Method not allowed"
-        }, status=405)
-        response["Access-Control-Allow-Origin"] = "http://localhost:3000"
-        return response
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+
 
 @csrf_exempt
 def job_applicants(request, job_id):
@@ -777,7 +848,7 @@ def job_applicants(request, job_id):
                 "status": "success",
                 "applicants": applications
             })
-            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            
             return response
 
         except Exception as e:
@@ -786,14 +857,14 @@ def job_applicants(request, job_id):
                 "status": "error",
                 "message": f"Server error: {str(e)}"
             }, status=500)
-            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+         
             return response
     else:
         response = JsonResponse({
             "status": "error",
             "message": "Method not allowed"
         }, status=405)
-        response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        
         return response
 
 @csrf_exempt
@@ -803,7 +874,7 @@ def update_application_status(request, application_id):
     """
     if request.method == "OPTIONS":
         response = JsonResponse({})
-        response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        
         response["Access-Control-Allow-Methods"] = "PUT, OPTIONS"
         response["Access-Control-Allow-Headers"] = "Content-Type, X-User-Email"
         return response
@@ -853,7 +924,7 @@ def update_application_status(request, application_id):
                     "message": "Failed to update application status"
                 }, status=400)
 
-            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            
             return response
 
         except Exception as e:
@@ -862,14 +933,14 @@ def update_application_status(request, application_id):
                 "status": "error",
                 "message": f"Server error: {str(e)}"
             }, status=500)
-            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            
             return response
     else:
         response = JsonResponse({
             "status": "error",
             "message": "Method not allowed"
         }, status=405)
-        response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        
         return response 
 
 @login_required

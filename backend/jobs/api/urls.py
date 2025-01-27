@@ -7,7 +7,7 @@ urlpatterns = [
     path('register/user/', register_user, name='register_user'),
     path('login/admin/', login_admin, name='login_admin'),
     path('login/user/', login_user, name='login_user'),
-     path('api/request-email-otp/', request_email_otp, name='request-email-otp'),
+    path('api/request-email-otp/', request_email_otp, name='request-email-otp'),
     path('api/verify-email-otp/', verify_email_otp, name='verify-email-otp'),
     path('register/user/', register_user, name='register-user'),
     path('home/', Home, name='home'),
@@ -23,11 +23,11 @@ urlpatterns = [
     path('company/<str:company_id>/', get_company_details, name='get_company_details'),
     path('company/<str:company_id>/update/', update_company_details, name='update_company_details'),
     path('apply-job/', apply_job, name='apply_job'),
-    path('user-applications/', user_applications, name='user_applications'),
+    path('guest-dashboard/', guest_dashboard, name='guest_dashboard'),
+    path('user-profile/', user_profile, name='user_applications'),
     path('job-applicants/<str:job_id>/', job_applicants, name='job_applicants'),
     path('update-application-status/<str:application_id>/', update_application_status, name='update_application_status'),
     path('logout/', logout_view, name='logout'),  # Add the logout URL
-
 
 ]
 

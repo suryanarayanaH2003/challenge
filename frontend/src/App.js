@@ -11,6 +11,7 @@ import Home from './components/home';
 import User from './components/user';
 import UserProfile from './components/UserProfile';
 import ForgotPassword from './components/forgotpassword';
+import GuestDashboard from './components/GuestDashboard';
 
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/register-admin" element={<RegisterAdmin />} />
+        <Route path="/guest-dashboard" element={<GuestDashboard />} />
         <Route path="/register-user" element={<RegisterUser />} />
         <Route path="/login-admin" element={<LoginAdmin />} />
         <Route path="/login-user" element={<LoginUser />} />
