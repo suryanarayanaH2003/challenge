@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 import json
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from bson.objectid import ObjectId
@@ -9,7 +10,9 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import random
 import string
+import bcrypt
 from django.contrib.auth.decorators import login_required
+
 
 
 from pymongo import MongoClient
@@ -140,11 +143,13 @@ def register_admin(request):
                 'created_at': datetime.datetime.utcnow()
             }
             password = data.get('password')
+            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
             company_result = company_collection.insert_one(company_info)
             company_id = company_result.inserted_id
             admin_info = {
                 'email': email,
-                'password': password,
+                'password': hashed_password,
                 'role': 'admin',
                 'company_id': str(company_id),
                 'email_verified': True,  
@@ -167,11 +172,12 @@ def register_user(request):
         existing_user = info_collection.find_one({'email': email})
         if existing_user:
             return JsonResponse({'status': 'failed', 'message': 'Email already registered'})
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         info_collection.insert_one({
             'name': name,
             'email': email,
             'mobile': mobile,
-            'password': password,
+            'password': hashed_password,
             'role': role,
             'email_verified': True  
         })
@@ -183,20 +189,16 @@ def login_admin(request):
         data = json.loads(request.body)
         email = data.get('email')
         password = data.get('password')
-        user = info_collection.find_one({
-            'email': email, 
-            'password': password, 
-            'role': 'admin'
-        })
-        if user:
-            company = company_collection.find_one({'_id': ObjectId(user['company_id'])})
+        company = info_collection.find_one({'email': email, 'role': 'admin'})
+        if company and bcrypt.checkpw(password.encode('utf-8'), company['password']):
+            company = company_collection.find_one({'_id': ObjectId(company['company_id'])})
             if company:
-                company['_id'] = str(company['_id'])  
+                company['_id'] = str(company['_id'])
                 return JsonResponse({
                     'status': 'success',
                     'user': {
-                        'email': user.get('email'),
-                        'role': user.get('role'),
+                        'email': company.get('email'),
+                        'role': company.get('role'),
                         'company': company
                     }
                 })
@@ -209,12 +211,8 @@ def login_user(request):
         data = json.loads(request.body)
         email = data.get('email')
         password = data.get('password')
-        user = info_collection.find_one({
-            'email': email, 
-            'password': password, 
-            'role': 'user'
-        })
-        if user:
+        user = info_collection.find_one({'email': email, 'role': 'user'})
+        if user and bcrypt.checkpw(password.encode('utf-8'), user['password']):
             return JsonResponse({
                 'status': 'success',
                 'user': {

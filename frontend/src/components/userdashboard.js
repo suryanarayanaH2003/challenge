@@ -49,7 +49,7 @@ const UserDashboard = () => {
       timeoutId = setTimeout(() => {
         localStorage.removeItem('user'); // Clear user session
         navigate('/login-user'); // Redirect to login after inactivity
-      }, 10000); // 1 minute
+      }, 1000000); // 1 minute
     };
 
     // Event listeners for user activity
