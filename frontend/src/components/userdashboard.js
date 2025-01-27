@@ -16,12 +16,11 @@ const UserDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get user data from localStorage (set during login)
         const user = JSON.parse(localStorage.getItem('user'));
         if (user) {
           setUserData(user);
         } else {
-          navigate('/login-user'); // Redirect to login if no user data
+          navigate('/login-user');
         }
 
         const response = await axios.get("http://localhost:8000/fetchjobs");
@@ -47,9 +46,9 @@ const UserDashboard = () => {
     const resetTimer = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        localStorage.removeItem('user'); // Clear user session
-        navigate('/login-user'); // Redirect to login after inactivity
-      }, 10000); // 1 minute
+        localStorage.removeItem('user'); 
+        navigate('/login-user'); 
+      }, 1000000); 
     };
 
     // Event listeners for user activity
@@ -58,10 +57,8 @@ const UserDashboard = () => {
     window.addEventListener('click', resetTimer);
     window.addEventListener('scroll', resetTimer);
 
-    // Start the timer
     resetTimer();
 
-    // Cleanup event listeners and timeout on component unmount
     return () => {
       clearTimeout(timeoutId);
       window.removeEventListener('mousemove', resetTimer);

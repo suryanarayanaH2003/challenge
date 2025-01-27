@@ -11,7 +11,8 @@ import Home from './components/home';
 import User from './components/user';
 import UserProfile from './components/UserProfile';
 import ForgotPassword from './components/forgotpassword';
-
+import EditJob from './components/EditJob';
+import DeleteJob from './components/DeleteJob';
 
 function App() {
   return (
@@ -28,7 +29,9 @@ function App() {
         <Route path="/user" element={<User />} />
         <Route path="/user-profile" element={<UserProfile />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/editjob/:jobId" element={<EditJob />} />
         <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/deletejob/:jobId" element={<DeleteJob />} />
       </Routes>
     </Router>
   );

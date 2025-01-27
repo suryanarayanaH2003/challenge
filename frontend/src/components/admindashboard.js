@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Button from "./ui/button";
 import JobApplicants from "./JobApplicants";
+import DeleteJob from './DeleteJob';
 
 const AdminDashboard = () => {
   const [jobs, setJobs] = useState([]);
@@ -10,6 +11,7 @@ const AdminDashboard = () => {
   const [error, setError] = useState(null);
   const [adminData, setAdminData] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,15 +19,15 @@ const AdminDashboard = () => {
     let timeoutId;
   
     const logoutUser = () => {
-      window.location.href = "{% url 'logout' %}"; // Redirect to logout URL
+      window.location.href = "http://localhost:8000/logout/";
     };
   
     const resetTimer = () => {
       clearTimeout(timeoutId);
-      timeoutId = setTimeout(logoutUser, 30000); // 30 seconds
+      timeoutId = setTimeout(logoutUser, 90000);
     };
   
-    // Event listeners for user activity
+   
     window.addEventListener('mousemove', resetTimer);
     window.addEventListener('keydown', resetTimer);
     window.addEventListener('click', resetTimer);
@@ -69,6 +71,37 @@ const AdminDashboard = () => {
 
     fetchJobs();
   }, [adminData]);
+
+  const handleEditJob = async (job) => {
+    // Navigate to the edit job page with job details
+    navigate(`/editjob/${job._id}`, { state: { job } });
+  };
+
+  const handleDeleteJob = async (jobId) => {
+    if (window.confirm("Are you sure you want to delete this job?")) {
+      try {
+        const response = await axios.delete(`http://localhost:8000/jobs/${jobId}/delete/`, {
+          headers: {
+            'X-User-Email': adminData.email
+          }
+        });
+        if (response.data.status === "success") {
+          setJobs(jobs.filter(job => job._id !== jobId)); // Remove job from state
+        } else {
+          setError(response.data.message || "Failed to delete job.");
+        }
+      } catch (err) {
+        setError("An error occurred while deleting the job.");
+      }
+    }
+  };
+
+  // Filter jobs based on search query
+  const filteredJobs = jobs.filter(job =>
+    job.job_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    job.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    job.qualification.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const styles = {
     adminDashboard: {
@@ -161,6 +194,14 @@ const AdminDashboard = () => {
       display: "flex",
       justifyContent: "flex-end",
     },
+    searchInput: {
+      width: '100%',
+      padding: '0.75rem',
+      marginBottom: '1rem',
+      border: '1px solid #ccc',
+      borderRadius: '4px',
+      fontSize: '1rem',
+    },
   };
 
   return (
@@ -180,16 +221,24 @@ const AdminDashboard = () => {
           </div>
         )}
 
+        <input
+          style={styles.searchInput}
+          type="text"
+          placeholder="Search jobs..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+
         {loading ? (
           <p>Loading...</p>
         ) : error ? (
           <p style={{ color: "red" }}>{error}</p>
         ) : (
           <div style={styles.grid}>
-            {jobs.length === 0 ? (
-              <p>No jobs posted yet.</p>
+            {filteredJobs.length === 0 ? (
+              <p>No jobs found.</p>
             ) : (
-              jobs.map((job) => (
+              filteredJobs.map((job) => (
                 <div
                   key={job._id}
                   style={styles.card}
@@ -234,9 +283,11 @@ const AdminDashboard = () => {
                     </p>
                   </div>
                   <div style={styles.buttonContainer}>
-                    <Button onClick={() => setSelectedJob(job)}>
-                      View Applicants
-                    </Button>
+                    <Button onClick={() => handleEditJob(job)}>Edit Job</Button>
+                    <DeleteJob jobId={job._id} adminData={adminData} onDeleteSuccess={(deletedJobId) => {
+                      setJobs(jobs.filter(job => job._id !== deletedJobId));
+                    }} />
+                    <Button onClick={() => setSelectedJob(job)}>View Applicants</Button>
                   </div>
                 </div>
               ))

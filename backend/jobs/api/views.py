@@ -875,24 +875,62 @@ def update_application_status(request, application_id):
         return response 
 
 @login_required
-# def user_dashboard(request):
-#     # Fetch jobs and user data for the dashboard
-#     jobs = Job.objects.all()  # Fetch all jobs (or filter as needed)
-#     required
-# deeturn render(request, 'user_dashboard.html', {'jobs': jobs})
-
-# @login_rf admin_dashboard(request):
-    # Fetch admin-specific data for the dashboard
-    # return render(request, 'admin_dashboard.html')
-
-# Example of a view that returns jobs as JSON
-# @login_required
-# def fetch_jobs(request):
-#     if request.method == 'GET':
-#         jobs = list(Job.objects.values())  # Convert queryset to list of dicts
-#         return JsonResponse({'status': 'success', 'jobs': jobs})
-#     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}) 
-
 def logout_view(request):
     logout(request)  # Log out the user
     return redirect('login')  # Redirect to the login page
+
+@csrf_exempt
+def edit_job(request, job_id):
+    """
+    API to edit a job in the MongoDB collection.
+    """
+    if request.method == "PUT":
+        try:
+            admin_email = request.headers.get('X-User-Email')
+            if not admin_email:
+                return JsonResponse({"status": "error", "message": "User not authenticated"}, status=401)
+
+            body = json.loads(request.body.decode("utf-8"))
+            result = job_collection.update_one(
+                {'_id': ObjectId(job_id)},
+                {'$set': {
+                    'Job title': body.get("title"),
+                    'location': body.get("location"),
+                    'qualification': body.get("qualification"),
+                    'job_description': body.get("job_description"),
+                    'required_skills_and_qualifications': body.get("required_skills_and_qualifications"),
+                    'salary_range': body.get("salary_range"),
+                }}
+            )
+
+            if result.modified_count > 0:
+                return JsonResponse({"status": "success", "message": "Job updated successfully"})
+            return JsonResponse({"status": "error", "message": "Job not found or no changes made"}, status=404)
+
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+    return JsonResponse({"status": "error", "message": "Invalid request method"}, status=405)
+
+@csrf_exempt
+def delete_job(request, job_id):
+    """
+    API to delete a job from the MongoDB collection.
+    """
+    if request.method == "DELETE":
+        try:
+            admin_email = request.headers.get('X-User-Email')
+            if not admin_email:
+                return JsonResponse({"status": "error", "message": "User not authenticated"}, status=401)
+
+            result = job_collection.delete_one({'_id': ObjectId(job_id)})
+
+            if result.deleted_count > 0:
+                return JsonResponse({"status": "success", "message": "Job deleted successfully"})
+            return JsonResponse({"status": "error", "message": "Job not found"}, status=404)
+
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+    return JsonResponse({"status": "error", "message": "Invalid request method"}, status=405)
+
