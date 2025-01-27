@@ -934,3 +934,49 @@ def delete_job(request, job_id):
 
     return JsonResponse({"status": "error", "message": "Invalid request method"}, status=405)
 
+@csrf_exempt
+def save_job(request):
+    if request.method == "POST":
+        try:
+            admin_email = request.headers.get('X-User-Email')
+            if not admin_email:
+                return JsonResponse({"status": "error", "message": "User not authenticated"}, status=401)
+
+            body = json.loads(request.body.decode("utf-8"))
+            job_data = {
+                'Job title': body.get("Job title"),
+                'location': body.get("location"),
+                'qualification': body.get("qualification"),
+                'job_description': body.get("job_description"),
+                'required_skills_and_qualifications': body.get("required_skills_and_qualifications"),
+                'salary_range': body.get("salary_range"),
+                'published': False  # Set published to False
+            }
+
+            # Save job_data to the database (assuming you have a job_collection)
+            job_collection.insert_one(job_data)
+
+            return JsonResponse({"status": "success", "message": "Job saved successfully"})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+@csrf_exempt
+def publish_job(request, job_id):
+    if request.method == "PUT":
+        try:
+            admin_email = request.headers.get('X-User-Email')
+            if not admin_email:
+                return JsonResponse({"status": "error", "message": "User not authenticated"}, status=401)
+
+            result = job_collection.update_one(
+                {'_id': ObjectId(job_id)},
+                {'$set': {'published': True}}  # Set published to True
+            )
+
+            if result.modified_count > 0:
+                return JsonResponse({"status": "success", "message": "Job published successfully"})
+            return JsonResponse({"status": "error", "message": "Job not found or already published"}, status=404)
+
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+

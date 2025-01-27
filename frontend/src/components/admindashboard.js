@@ -4,6 +4,7 @@ import axios from "axios";
 import Button from "./ui/button";
 import JobApplicants from "./JobApplicants";
 import DeleteJob from './DeleteJob';
+import SavedJobs from './SavedJobs';
 
 const AdminDashboard = () => {
   const [jobs, setJobs] = useState([]);
@@ -12,6 +13,7 @@ const AdminDashboard = () => {
   const [adminData, setAdminData] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSavedJobs, setShowSavedJobs] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -209,9 +211,14 @@ const AdminDashboard = () => {
       <div style={styles.container}>
         <div style={styles.header}>
           <h1 style={styles.title}>Admin Dashboard</h1>
-          <Button onClick={() => navigate("/postjobs")}>
-            Post New Job
-          </Button>
+          <div>
+            <Button onClick={() => setShowSavedJobs(true)}>
+              View Saved Jobs
+            </Button>
+            <Button onClick={() => navigate("/postjobs")}>
+              Post New Job
+            </Button>
+          </div>
         </div>
 
         {adminData?.company && (
@@ -299,6 +306,13 @@ const AdminDashboard = () => {
           <JobApplicants
             job={selectedJob}
             onClose={() => setSelectedJob(null)}
+          />
+        )}
+
+        {showSavedJobs && (
+          <SavedJobs
+            adminEmail={adminData?.email}
+            onClose={() => setShowSavedJobs(false)}
           />
         )}
       </div>

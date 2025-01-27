@@ -13,6 +13,7 @@ import UserProfile from './components/UserProfile';
 import ForgotPassword from './components/forgotpassword';
 import EditJob from './components/EditJob';
 import DeleteJob from './components/DeleteJob';
+import SavedJobs from './components/SavedJobs';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
         <Route path="/editjob/:jobId" element={<EditJob />} />
         <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="/deletejob/:jobId" element={<DeleteJob />} />
+        <Route path="/savedjobs" element={<SavedJobs />} />
       </Routes>
     </Router>
   );

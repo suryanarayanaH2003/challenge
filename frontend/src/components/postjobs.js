@@ -133,6 +133,55 @@ const PostJobs = () => {
     }
   };
 
+  const handleSaveJob = async (e) => {
+    e.preventDefault();
+    try {
+      const jobData = {
+        "Job title": formData.title,
+        location: formData.location,
+        qualification: formData.qualification,
+        job_description: formData.job_description,
+        required_skills_and_qualifications: formData.required_skills_and_qualifications,
+        salary_range: formData.salary_range,
+        published: false, // Set published to false
+      };
+
+      const response = await axios.post(
+        "http://localhost:8000/savejobs/", // New endpoint for saving jobs
+        jobData,
+        {
+          headers: {
+            'X-User-Email': adminData.email,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+        }
+      );
+
+      if (response.data.status === "success") {
+        setSuccess("Job saved successfully!");
+        // Clear form
+        setFormData({
+          title: "",
+          location: "",
+          qualification: "",
+          job_description: "",
+          required_skills_and_qualifications: "",
+          salary_range: "",
+        });
+        // Redirect to dashboard after 2 seconds
+        setTimeout(() => {
+          navigate("/admindashboard");
+        }, 2000);
+      } else {
+        setError(response.data.message || "Failed to save job.");
+      }
+    } catch (err) {
+      console.error('Error saving job:', err);
+      setError("An error occurred while saving the job.");
+    }
+  };
+
   const styles = {
     container: {
       minHeight: "100vh",
@@ -303,8 +352,11 @@ const PostJobs = () => {
         {success && <p style={styles.success}>{success}</p>}
 
         <div style={styles.buttonContainer}>
-          <Button type="submit" style={{ flex: 1 }}>
+          <Button type="submit" style={{ flex: 1 }} onClick={handleSubmit}>
             Post Job
+          </Button>
+          <Button type="button" style={{ flex: 1 }} onClick={handleSaveJob}>
+            Save Job
           </Button>
           <Button
             type="button"
