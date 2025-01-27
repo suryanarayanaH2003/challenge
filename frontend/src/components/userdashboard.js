@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import JobApplicationModal from "./JobApplicationModal";
 import Button from "./ui/button";
+import { Search } from "lucide-react";
 
 const UserDashboard = () => {
   const [jobs, setJobs] = useState([]);
+  const [filteredJobs, setFilteredJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(null);
@@ -13,6 +15,16 @@ const UserDashboard = () => {
   const [selectedJob, setSelectedJob] = useState(null);
   const navigate = useNavigate();
 
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filters, setFilters] = useState({
+    location: "",
+    salaryRange: "",
+    employmentType: "",
+    datePosted: ""
+  });
+
+  // Fetch data effect
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -26,6 +38,7 @@ const UserDashboard = () => {
         const response = await axios.get("http://localhost:8000/fetchjobs");
         if (response.data.status === "success") {
           setJobs(response.data.jobs || []);
+          setFilteredJobs(response.data.jobs || []);
         } else {
           setError(response.data.message || "Failed to fetch jobs.");
         }
@@ -39,34 +52,55 @@ const UserDashboard = () => {
     fetchData();
   }, [navigate]);
 
-  // Session management
+  // Filter jobs based on search term and filters
   useEffect(() => {
-    let timeoutId;
+    let result = [...jobs];
 
-    const resetTimer = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        localStorage.removeItem('user'); 
-        navigate('/login-user'); 
-      }, 1000000); 
-    };
+    // Search term filter
+    if (searchTerm) {
+      result = result.filter(job =>
+        (job.job_title && job.job_title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (job.company && job.company.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
 
-    // Event listeners for user activity
-    window.addEventListener('mousemove', resetTimer);
-    window.addEventListener('keydown', resetTimer);
-    window.addEventListener('click', resetTimer);
-    window.addEventListener('scroll', resetTimer);
+    // Location filter
+    if (filters.location) {
+      result = result.filter(job =>
+        job.location && job.location.toLowerCase().includes(filters.location.toLowerCase())
+      );
+    }
 
-    resetTimer();
+    // Salary range filter
+    if (filters.salaryRange) {
+      const [min, max] = filters.salaryRange.split('-').map(num => parseInt(num.replace(/\D/g, '')));
+      result = result.filter(job => {
+        const jobSalary = parseInt(job.salary_range.replace(/\D/g, ''));
+        return jobSalary >= min && jobSalary <= max;
+      });
+    }
 
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener('mousemove', resetTimer);
-      window.removeEventListener('keydown', resetTimer);
-      window.removeEventListener('click', resetTimer);
-      window.removeEventListener('scroll', resetTimer);
-    };
-  }, [navigate]);
+    // Employment type filter
+    if (filters.employmentType) {
+      result = result.filter(job =>
+        job.employment_type === filters.employmentType
+      );
+    }
+
+    // Date posted filter
+    if (filters.datePosted) {
+      const currentDate = new Date();
+      const filterDays = parseInt(filters.datePosted);
+      result = result.filter(job => {
+        const jobDate = new Date(job.posted_date);
+        const diffTime = Math.abs(currentDate - jobDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays <= filterDays;
+      });
+    }
+
+    setFilteredJobs(result);
+  }, [searchTerm, filters, jobs]);
 
   const fetchCompanyDetails = async (companyId) => {
     try {
@@ -190,6 +224,40 @@ const UserDashboard = () => {
       cursor: "pointer",
       color: "#4a5568",
     },
+    searchContainer: {
+      marginBottom: "2rem",
+      display: "flex",
+      flexDirection: "column",
+      gap: "1rem",
+    },
+    searchBar: {
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5rem",
+      padding: "0.5rem",
+      border: "1px solid #e2e8f0",
+      borderRadius: "0.5rem",
+      backgroundColor: "#fff",
+    },
+    searchInput: {
+      flex: 1,
+      border: "none",
+      outline: "none",
+      padding: "0.5rem",
+      fontSize: "1rem",
+    },
+    filterContainer: {
+      display: "flex",
+      gap: "1rem",
+      flexWrap: "wrap",
+    },
+    select: {
+      padding: "0.5rem",
+      borderRadius: "0.5rem",
+      border: "1px solid #e2e8f0",
+      backgroundColor: "#fff",
+      minWidth: "150px",
+    },
     '@media (minWidth: 640px)': {
       grid: {
         gridTemplateColumns: "repeat(2, 1fr)",
@@ -214,13 +282,76 @@ const UserDashboard = () => {
           <p style={styles.welcome}>Welcome, {userData.name}!</p>
         )}
 
+        {/* Search and Filter Section */}
+        <div style={styles.searchContainer}>
+          <div style={styles.searchBar}>
+            <Search size={20} />
+            <input
+              type="text"
+              placeholder="Search jobs by title or company..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={styles.searchInput}
+            />
+          </div>
+
+          <div style={styles.filterContainer}>
+            <select
+              value={filters.location}
+              onChange={(e) => setFilters({ ...filters, location: e.target.value })}
+              style={styles.select}
+            >
+              <option value="">All Locations</option>
+              <option value="remote">Remote</option>
+              <option value="onsite">On-site</option>
+              <option value="hybrid">Hybrid</option>
+            </select>
+
+            <select
+              value={filters.salaryRange}
+              onChange={(e) => setFilters({ ...filters, salaryRange: e.target.value })}
+              style={styles.select}
+            >
+              <option value="">All Salary Ranges</option>
+              <option value="0-50000">$0 - $50,000</option>
+              <option value="50000-100000">$50,000 - $100,000</option>
+              <option value="100000-150000">$100,000 - $150,000</option>
+              <option value="150000+">$150,000+</option>
+            </select>
+
+            <select
+              value={filters.employmentType}
+              onChange={(e) => setFilters({ ...filters, employmentType: e.target.value })}
+              style={styles.select}
+            >
+              <option value="">All Employment Types</option>
+              <option value="full-time">Full-time</option>
+              <option value="part-time">Part-time</option>
+              <option value="contract">Contract</option>
+              <option value="internship">Internship</option>
+            </select>
+
+            <select
+              value={filters.datePosted}
+              onChange={(e) => setFilters({ ...filters, datePosted: e.target.value })}
+              style={styles.select}
+            >
+              <option value="">All Dates</option>
+              <option value="1">Last 24 hours</option>
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 90 days</option>
+            </select>
+          </div>
+        </div>
+
         {loading ? (
           <p>Loading...</p>
         ) : error ? (
           <p style={{ color: "red" }}>{error}</p>
         ) : (
           <div style={styles.grid}>
-            {jobs.map((job) => (
+            {filteredJobs.map((job) => (
               <div
                 key={job._id}
                 style={styles.card}
@@ -265,26 +396,8 @@ const UserDashboard = () => {
                   </p>
                 </div>
                 <div>
-                  <a
-                    href="#"
-                    style={styles.button}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      fetchCompanyDetails(job.company_id);
-                    }}
-                  >
-                    View Company Details
-                  </a>
-                  <a
-                    href="#"
-                    style={styles.button}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleApplyClick(job);
-                    }}
-                  >
-                    Apply
-                  </a>
+                  <Button onClick={() => fetchCompanyDetails(job.company_id)}>View Company Details</Button>
+                  <Button onClick={() => handleApplyClick(job)}>Apply</Button>
                 </div>
               </div>
             ))}

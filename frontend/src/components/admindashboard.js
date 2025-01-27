@@ -19,28 +19,28 @@ const AdminDashboard = () => {
   useEffect(() => {
     // Check if admin is logged in
     let timeoutId;
-  
+
     const logoutUser = () => {
-      window.location.href = "http://localhost:8000/logout/";
+      localStorage.removeItem('adminData'); // Clear user login data
+      navigate('/login-admin'); // Navigate to the login page
     };
-  
+
     const resetTimer = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(logoutUser, 90000);
+      clearTimeout(timeoutId); // Clear the timeout
+      timeoutId = setTimeout(logoutUser, 600000); // Set timeout to 10 minutes
     };
-  
-   
+
     window.addEventListener('mousemove', resetTimer);
     window.addEventListener('keydown', resetTimer);
     window.addEventListener('click', resetTimer);
     window.addEventListener('scroll', resetTimer);
-  
+
     // Start the timer
     resetTimer();
-    
+
     const storedAdminData = localStorage.getItem('adminData');
     if (!storedAdminData) {
-      navigate('');
+      navigate('/login-admin'); // Redirect to login if not logged in
       return;
     }
 
@@ -58,7 +58,7 @@ const AdminDashboard = () => {
             'X-User-Email': adminData.email
           }
         });
-        
+
         if (response.data.status === "success") {
           setJobs(response.data.jobs || []);
         } else {

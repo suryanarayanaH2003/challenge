@@ -13,7 +13,7 @@ from django.contrib.auth.decorators import login_required
 
 
 from pymongo import MongoClient
-client = MongoClient('mongodb+srv://suryanarayanan110803:9894153716@cluster0.shd6d.mongodb.net/')
+client = MongoClient('mongodb://localhost:27017/')
 db = client['job-portal']
 info_collection = db['info']
 job_collection = db['jobs']
