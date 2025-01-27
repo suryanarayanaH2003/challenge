@@ -34,6 +34,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="/deletejob/:jobId" element={<DeleteJob />} />
         <Route path="/savedjobs" element={<SavedJobs />} />
+        <Route path="/saved-jobs" element={<SavedJobs />} />
       </Routes>
     </Router>
   );

@@ -212,14 +212,16 @@ const AdminDashboard = () => {
         <div style={styles.header}>
           <h1 style={styles.title}>Admin Dashboard</h1>
           <div>
-            <Button onClick={() => setShowSavedJobs(true)}>
-              View Saved Jobs
-            </Button>
+          <Button onClick={() => navigate("/saved-jobs")}>
+          View Saved Jobs
+        </Button>
             <Button onClick={() => navigate("/postjobs")}>
               Post New Job
             </Button>
           </div>
         </div>
+
+        
 
         {adminData?.company && (
           <div style={styles.companyInfo}>

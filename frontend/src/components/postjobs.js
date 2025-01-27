@@ -22,23 +22,23 @@ const PostJobs = () => {
   useEffect(() => {
     let timeoutId;
 
-  const logoutUser = () => {
-    window.location.href = "{% url 'logout' %}"; // Redirect to logout URL
-  };
+    const logoutUser = () => {
+      window.location.href = "{% url 'logout' %}"; // Redirect to logout URL
+    };
 
-  const resetTimer = () => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(logoutUser, 30000); // 30 seconds
-  };
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(logoutUser, 30000); // 30 seconds
+    };
 
-  // Event listeners for user activity
-  window.addEventListener('mousemove', resetTimer);
-  window.addEventListener('keydown', resetTimer);
-  window.addEventListener('click', resetTimer);
-  window.addEventListener('scroll', resetTimer);
+    // Event listeners for user activity
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    window.addEventListener('click', resetTimer);
+    window.addEventListener('scroll', resetTimer);
 
-  // Start the timer
-  resetTimer();
+    // Start the timer
+    resetTimer();
     // Check if admin is logged in
     const storedAdminData = localStorage.getItem('adminData');
     if (!storedAdminData) {
@@ -110,6 +110,9 @@ const PostJobs = () => {
         setTimeout(() => {
           navigate("/admindashboard");
         }, 2000);
+
+        // Call saveJob after posting
+        await saveJob(response.data.jobId);
       } else {
         setError(response.data.message || "Failed to post job.");
       }
@@ -121,7 +124,7 @@ const PostJobs = () => {
         headers: err.response?.headers,
         data: err.response?.config?.data
       });
-      
+
       if (err.response?.status === 401) {
         setError("You are not authenticated. Please log in again.");
         navigate('/login-admin');
@@ -147,7 +150,7 @@ const PostJobs = () => {
       };
 
       const response = await axios.post(
-        "http://localhost:8000/savejobs/", // New endpoint for saving jobs
+        "http://localhost:8000/savejob/", // New endpoint for saving jobs
         jobData,
         {
           headers: {
@@ -178,6 +181,19 @@ const PostJobs = () => {
       }
     } catch (err) {
       console.error('Error saving job:', err);
+      setError("An error occurred while saving the job.");
+    }
+  };
+
+  const saveJob = async (jobId) => {
+    try {
+      const response = await axios.post("http://localhost:8000/savejob", { jobId });
+      if (response.data.status === "success") {
+        alert("Job saved successfully!");
+      } else {
+        setError(response.data.message || "Failed to save job.");
+      }
+    } catch (err) {
       setError("An error occurred while saving the job.");
     }
   };

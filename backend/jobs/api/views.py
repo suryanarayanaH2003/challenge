@@ -19,6 +19,8 @@ info_collection = db['info']
 job_collection = db['jobs']
 company_collection = db['companies']  
 job_applications_collection = db['job_applications']
+saved_jobs_collection = db['saved_jobs']
+
 
 
 SENDER_EMAIL = "kandaring2k24@gmail.com"
@@ -935,11 +937,40 @@ def delete_job(request, job_id):
     return JsonResponse({"status": "error", "message": "Invalid request method"}, status=405)
 
 @csrf_exempt
+def get_saved_jobs(request):
+    """
+    API to get all saved jobs for the authenticated user.
+    """
+    if request.method == "GET":
+        try:
+            # Get user's email from request headers
+            user_email = request.headers.get('X-User-Email')
+            if not user_email:
+                return JsonResponse({"status": "error", "message": "User not authenticated"}, status=401)
+
+            # Fetch saved jobs for the user
+            saved_jobs = list(saved_jobs_collection.find({"user_email": user_email}))
+
+            if not saved_jobs:
+                return JsonResponse({"status": "success", "message": "No saved jobs found.", "jobs": []}, status=200)
+
+            # Convert ObjectId to string for each job
+            for job in saved_jobs:
+                job["_id"] = str(job["_id"])
+                job["job_title"] = job.pop("Job title")  # Adjust the key if necessary
+
+            return JsonResponse({"status": "success", "jobs": saved_jobs}, status=200)
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    else:
+        return JsonResponse({"status": "error", "message": "Invalid request method."}, status=405)
+
+@csrf_exempt
 def save_job(request):
     if request.method == "POST":
         try:
-            admin_email = request.headers.get('X-User-Email')
-            if not admin_email:
+            user_email = request.headers.get('X-User-Email')
+            if not user_email:
                 return JsonResponse({"status": "error", "message": "User not authenticated"}, status=401)
 
             body = json.loads(request.body.decode("utf-8"))
@@ -950,11 +981,12 @@ def save_job(request):
                 'job_description': body.get("job_description"),
                 'required_skills_and_qualifications': body.get("required_skills_and_qualifications"),
                 'salary_range': body.get("salary_range"),
-                'published': False  # Set published to False
+                'user_email': user_email,  # Save the user's email
+                'saved_at': datetime.datetime.utcnow()  # Optional: timestamp for when the job was saved
             }
 
-            # Save job_data to the database (assuming you have a job_collection)
-            job_collection.insert_one(job_data)
+            # Save job_data to the saved_jobs collection
+            saved_jobs_collection.insert_one(job_data)
 
             return JsonResponse({"status": "success", "message": "Job saved successfully"})
         except Exception as e:
@@ -967,16 +999,50 @@ def publish_job(request, job_id):
             admin_email = request.headers.get('X-User-Email')
             if not admin_email:
                 return JsonResponse({"status": "error", "message": "User not authenticated"}, status=401)
-
-            result = job_collection.update_one(
-                {'_id': ObjectId(job_id)},
-                {'$set': {'published': True}}  # Set published to True
-            )
-
-            if result.modified_count > 0:
-                return JsonResponse({"status": "success", "message": "Job published successfully"})
-            return JsonResponse({"status": "error", "message": "Job not found or already published"}, status=404)
-
+            
+            # Find the job in saved_jobs_collection
+            saved_job = saved_jobs_collection.find_one({"_id": ObjectId(job_id)})
+            
+            if not saved_job:
+                return JsonResponse({"status": "error", "message": "Saved job not found"}, status=404)
+            
+            # Remove _id to create a new one in jobs_collection
+            saved_job.pop('_id', None)
+            
+            # Insert into jobs_collection
+            jobs_collection.insert_one(saved_job)
+            
+            # Delete from saved_jobs_collection
+            saved_jobs_collection.delete_one({"_id": ObjectId(job_id)})
+            
+            return JsonResponse({"status": "success", "message": "Job published successfully"})
+            
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
+@csrf_exempt
+def get_saved_jobs(request):
+    if request.method == "GET":
+        try:
+            # Get admin's email from request
+            admin_email = request.headers.get('X-User-Email')
+            if not admin_email:
+                return JsonResponse({"status": "error", "message": "User not authenticated"}, status=401)
+
+            # Fetch jobs posted by this admin
+            jobs = list(saved_jobs_collection.find({"posted_by": admin_email}))
+
+            if not jobs:
+                return JsonResponse({"status": "success", "message": "No jobs uploaded.", "jobs": []}, status=200)
+
+            # Convert ObjectId to string for each job
+            for job in jobs:
+                job["_id"] = str(job["_id"])
+                job["job_title"] = job.pop("Job title")
+
+            return JsonResponse({"status": "success", "jobs": jobs}, status=200)
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    else:
+        return JsonResponse({"status": "error", "message": "Invalid request method."}, status=405)
+    
