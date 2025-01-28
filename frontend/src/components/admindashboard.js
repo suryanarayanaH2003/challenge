@@ -46,7 +46,6 @@ const AdminDashboard = () => {
     setAdminData(JSON.parse(storedAdminData));
   }, [navigate]);
 
-
   useEffect(() => {
     const fetchJobs = async () => {
       if (!adminData?.email) return;
@@ -59,7 +58,24 @@ const AdminDashboard = () => {
         });
 
         if (response.data.status === "success") {
-          setJobs(response.data.jobs || []);
+          const sortedJobs = response.data.jobs || [];
+
+          // Remove jobs with crossed deadlines
+          const filteredJobs = sortedJobs.filter((job) => {
+            const currentDate = new Date();
+            const deadlineDate = new Date(job.deadline);
+            if (deadlineDate < currentDate) {
+              // Delete job if deadline passed
+              deleteJob(job._id); // Ensure deletion via API
+              return false; // Exclude from state
+            }
+            return true;
+          });
+
+          // Sort jobs by createdAt (newest first)
+          filteredJobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+          setJobs(filteredJobs);
         } else {
           setError(response.data.message || "Failed to fetch jobs.");
         }
@@ -73,27 +89,25 @@ const AdminDashboard = () => {
     fetchJobs();
   }, [adminData]);
 
-  const handleEditJob = async (job) => {
-    navigate(`/editjob/${job._id}`, { state: { job } });
+  const deleteJob = async (jobId) => {
+    try {
+      const response = await axios.delete(`http://localhost:8000/jobs/${jobId}/delete/`, {
+        headers: {
+          'X-User-Email': adminData.email
+        }
+      });
+      if (response.data.status === "success") {
+        setJobs(jobs.filter(job => job._id !== jobId)); // Remove job from state
+      } else {
+        setError(response.data.message || "Failed to delete job.");
+      }
+    } catch (err) {
+      setError("An error occurred while deleting the job.");
+    }
   };
 
-  const handleDeleteJob = async (jobId) => {
-    if (window.confirm("Are you sure you want to delete this job?")) {
-      try {
-        const response = await axios.delete(`http://localhost:8000/jobs/${jobId}/delete/`, {
-          headers: {
-            'X-User-Email': adminData.email
-          }
-        });
-        if (response.data.status === "success") {
-          setJobs(jobs.filter(job => job._id !== jobId)); // Remove job from state
-        } else {
-          setError(response.data.message || "Failed to delete job.");
-        }
-      } catch (err) {
-        setError("An error occurred while deleting the job.");
-      }
-    }
+  const handleEditJob = async (job) => {
+    navigate(`/editjob/${job._id}`, { state: { job } });
   };
 
   const handleLogout = (key) => {
@@ -215,19 +229,17 @@ const AdminDashboard = () => {
         <div style={styles.header}>
           <h1 style={styles.title}>Admin Dashboard</h1>
           <div>
-          <Button onClick={() => navigate("/saved-jobs")}>
-          View Saved Jobs
-        </Button>
+            <Button onClick={() => navigate("/saved-jobs")}>
+              View Preview Jobs
+            </Button>
             <Button onClick={() => navigate("/postjobs")}>
               Post New Job
             </Button>
             <Button onClick={() => handleLogout('adminData')}>
-          Logout
-        </Button>
+              Logout
+            </Button>
           </div>
         </div>
-
-        
 
         {adminData?.company && (
           <div style={styles.companyInfo}>
@@ -281,21 +293,13 @@ const AdminDashboard = () => {
                     <h2 style={styles.cardTitle}>{job.job_title}</h2>
                   </div>
                   <div style={styles.cardContent}>
-                    <p>
-                      <strong>Location:</strong> {job.location}
-                    </p>
-                    <p>
-                      <strong>Qualification:</strong> {job.qualification}
-                    </p>
-                    <p>
-                      <strong>Skills:</strong> {job.required_skills_and_qualifications}
-                    </p>
-                    <p>
-                      <strong>Description:</strong> {job.job_description}
-                    </p>
-                    <p>
-                      <strong>Salary:</strong> {job.salary_range}
-                    </p>
+                    <p><strong>Location:</strong> {job.location}</p>
+                    <p><strong>Qualification:</strong> {job.qualification}</p>
+                    <p><strong>Skills:</strong> {job.required_skills_and_qualifications}</p>
+                    <p><strong>Description:</strong> {job.job_description}</p>
+                    <p><strong>Salary:</strong> {job.salary_range}</p>
+                    <p><strong>Requirement Type:</strong> {job.employment_type}</p>
+                    <p><strong>Deadline:</strong> {new Date(job.application_deadline).toLocaleDateString()}</p>
                   </div>
                   <div style={styles.buttonContainer}>
                     <Button onClick={() => handleEditJob(job)}>Edit Job</Button>

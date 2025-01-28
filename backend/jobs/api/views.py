@@ -11,10 +11,11 @@ import random
 import string
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout as django_logout
+from bcrypt import hashpw, gensalt
 
 
 from pymongo import MongoClient
-client = MongoClient('mongodb+srv://suryanarayanan110803:9894153716@cluster0.shd6d.mongodb.net/')
+client = MongoClient('mongodb://localhost:27017/')
 db = client['job-portal']
 info_collection = db['info']
 job_collection = db['jobs']
@@ -124,10 +125,12 @@ def register_admin(request):
             if not email:
                 return JsonResponse({'status': 'failed', 'message': 'Email is required'})
 
+            # Check if the admin already exists
             existing_user = info_collection.find_one({'email': email})
             if existing_user:
                 return JsonResponse({'status': 'failed', 'message': 'Email already registered'})
             
+            # Create company information
             company_info = {
                 'name': data.get('companyName'),
                 'description': data.get('companyDescription'),
@@ -140,22 +143,34 @@ def register_admin(request):
                 },
                 'created_at': datetime.datetime.utcnow()
             }
+
+            # Hash the password
             password = data.get('password')
+            if not password:
+                return JsonResponse({'status': 'failed', 'message': 'Password is required'})
+            hashed_password = hashpw(password.encode('utf-8'), gensalt())
+
+            # Insert company information into the database
             company_result = company_collection.insert_one(company_info)
             company_id = company_result.inserted_id
+
+            # Insert admin information into the database
             admin_info = {
                 'email': email,
-                'password': password,
+                'password': hashed_password.decode('utf-8'),  # Store the hashed password as a string
                 'role': 'admin',
                 'company_id': str(company_id),
-                'email_verified': True,  
+                'email_verified': True,  # Default email verified to True
                 'created_at': datetime.datetime.utcnow()
-            }            
+            }
             info_collection.insert_one(admin_info)
-            return JsonResponse({'status': 'success'})          
+
+            return JsonResponse({'status': 'success'})
         except Exception as e:
             return JsonResponse({'status': 'failed', 'message': str(e)})
+
     return JsonResponse({'status': 'failed', 'message': 'Invalid request method'})
+
 @csrf_exempt
 def register_user(request):
     if request.method == 'POST':
@@ -165,18 +180,27 @@ def register_user(request):
         mobile = data.get('mobile')
         password = data.get('password')
         role = data.get('role', 'user')
+
+        # Check if the user already exists
         existing_user = info_collection.find_one({'email': email})
         if existing_user:
             return JsonResponse({'status': 'failed', 'message': 'Email already registered'})
+
+        # Hash the password before storing it
+        hashed_password = hashpw(password.encode('utf-8'), gensalt())
+
+        # Insert the user into the database
         info_collection.insert_one({
             'name': name,
             'email': email,
             'mobile': mobile,
-            'password': password,
+            'password': hashed_password.decode('utf-8'),  # Store the hashed password as a string
             'role': role,
-            'email_verified': True  
+            'email_verified': True  # Set email verified to True
         })
+
         return JsonResponse({'status': 'success'})
+
     return JsonResponse({'status': 'failed', 'reason': 'Invalid request method'})
 
 
@@ -195,30 +219,36 @@ def save_user_job(request):
     return JsonResponse({'status': 'failed', 'reason': 'Invalid request method.'}, status=405)
 
 
+import bcrypt
+from bson import ObjectId
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
 @csrf_exempt
 def login_admin(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         email = data.get('email')
         password = data.get('password')
-        user = info_collection.find_one({
-            'email': email, 
-            'password': password, 
-            'role': 'admin'
-        })
+
+        user = info_collection.find_one({'email': email, 'role': 'admin'})
         if user:
-            company = company_collection.find_one({'_id': ObjectId(user['company_id'])})
-            if company:
-                company['_id'] = str(company['_id'])  
-                return JsonResponse({
-                    'status': 'success',
-                    'user': {
-                        'email': user.get('email'),
-                        'role': user.get('role'),
-                        'company': company
-                    }
-                })
-        return JsonResponse({'status': 'failed', 'reason': 'Invalid credentials'})
+            # Verify the hashed password
+            stored_hashed_password = user['password']
+            if bcrypt.checkpw(password.encode('utf-8'), stored_hashed_password.encode('utf-8')):
+                company = company_collection.find_one({'_id': ObjectId(user['company_id'])})
+                if company:
+                    company['_id'] = str(company['_id'])  # Convert ObjectId to string
+                    return JsonResponse({
+                        'status': 'success',
+                        'user': {
+                            'email': user.get('email'),
+                            'role': user.get('role'),
+                            'company': company
+                        }
+                    })
+        return JsonResponse({'status': 'failed', 'reason': 'Invalid email or password'})
     return JsonResponse({'status': 'failed', 'reason': 'Invalid request method'})
 
 @csrf_exempt
@@ -227,23 +257,23 @@ def login_user(request):
         data = json.loads(request.body)
         email = data.get('email')
         password = data.get('password')
-        user = info_collection.find_one({
-            'email': email, 
-            'password': password, 
-            'role': 'user'
-        })
+
+        user = info_collection.find_one({'email': email, 'role': 'user'})
         if user:
-            return JsonResponse({
-                'status': 'success',
-                'user': {
-                    'name': user.get('name'),
-                    'email': user.get('email'),
-                    'role': user.get('role')
-                }
-            })
-        return JsonResponse({'status': 'failed', 'reason': 'Invalid credentials'})
+            # Verify the hashed password
+            stored_hashed_password = user['password']
+            if bcrypt.checkpw(password.encode('utf-8'), stored_hashed_password.encode('utf-8')):
+                return JsonResponse({
+                    'status': 'success',
+                    'user': {
+                        'name': user.get('name'),
+                        'email': user.get('email'),
+                        'role': user.get('role')
+                    }
+                })
+        return JsonResponse({'status': 'failed', 'reason': 'Invalid email or password'})
     return JsonResponse({'status': 'failed', 'reason': 'Invalid request method'})
-  
+
 @csrf_exempt
 def user(request):
     user_type = request.session.get('user_type')
@@ -406,11 +436,29 @@ def verify_otp(request):
 
     return JsonResponse({'status': 'failed', 'message': 'Invalid request method'})
 
-
+def send_email(to_email, subject, body):
+    try:
+        # Create the MIME message
+        msg = MIMEMultipart()
+        msg['From'] = SENDER_EMAIL
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        
+        # Attach the body with the msg
+        msg.attach(MIMEText(body, 'plain'))
+        
+        # Set up the server and send the email
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(SENDER_EMAIL, APP_PASSWORD)
+            server.sendmail(SENDER_EMAIL, to_email, msg.as_string())
+        print(f"Email sent to {to_email} successfully.")
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+        
 @csrf_exempt
 def post_job(request):
     """
-    API to post a new job to the MongoDB collection.
+    API to post a new job to the MongoDB collection and notify the admin via email.
     """
     if request.method == "OPTIONS":
         response = JsonResponse({})
@@ -426,11 +474,15 @@ def post_job(request):
             if not admin_email:
                 return JsonResponse({"status": "error", "message": "User not authenticated"}, status=401)
 
-            # Get admin and company details
+            # Get admin details from the database (info_collection)
             admin = info_collection.find_one({'email': admin_email, 'role': 'admin'})
             if not admin:
                 return JsonResponse({"status": "error", "message": "Admin not found"}, status=404)
 
+            # Extract the admin's email from the database record (in case you need it for confirmation)
+            admin_email = admin['email']  # This is the email that we will send the notification to
+
+            # Get company details associated with the admin
             company = company_collection.find_one({'_id': ObjectId(admin['company_id'])})
             if not company:
                 return JsonResponse({"status": "error", "message": "Company not found"}, status=404)
@@ -444,7 +496,8 @@ def post_job(request):
 
             # Validate required fields
             required_fields = ["Job title", "location", "qualification", "job_description", 
-                             "required_skills_and_qualifications", "salary_range"]
+                               "required_skills_and_qualifications", "salary_range", 
+                               "employment_type", "application_deadline"]
             missing_fields = [field for field in required_fields if field not in body]
             if missing_fields:
                 return JsonResponse({
@@ -461,6 +514,8 @@ def post_job(request):
                 "job_description": body.get("job_description"),
                 "required_skills_and_qualifications": body.get("required_skills_and_qualifications"),
                 "salary_range": body.get("salary_range"),
+                "employment_type": body.get("employment_type"),  # Added employment type
+                "application_deadline": body.get("application_deadline"),  # Added application deadline
                 "posted_by": admin_email,
                 "created_at": datetime.datetime.utcnow(),
                 "published": True
@@ -468,10 +523,31 @@ def post_job(request):
 
             # Insert the job into the collection
             result = job_collection.insert_one(job)
-            
+
+            # Send email to admin about the job post
+            subject = f"New Job Posted: {job['Job title']}"
+            body = f"""
+            Dear Admin,
+
+            A new job has been posted to the company {company['name']}.
+
+            Job Title: {job['Job title']}
+            Location: {job['location']}
+            Qualification: {job['qualification']}
+            Job Description: {job['job_description']}
+            Required Skills and Qualifications: {job['required_skills_and_qualifications']}
+            Salary Range: {job['salary_range']}
+            Employment Type: {job['employment_type']}
+            Application Deadline: {job['application_deadline']}
+
+            Regards,
+            Job Portal
+            """
+            send_email(admin_email, subject, body)
+
             response = JsonResponse({
                 "status": "success",
-                "message": "Job posted successfully!"
+                "message": "Job posted successfully and email sent to admin!"
             }, status=201)
             response["Access-Control-Allow-Origin"] = "http://localhost:3000"
             return response
@@ -491,7 +567,7 @@ def post_job(request):
         }, status=405)
         response["Access-Control-Allow-Origin"] = "http://localhost:3000"
         return response
-    
+
 
 @csrf_exempt
 def get_jobs(request):
@@ -982,7 +1058,8 @@ def get_saved_jobs(request):
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
     else:
         return JsonResponse({"status": "error", "message": "Invalid request method."}, status=405)
-
+    
+    
 @csrf_exempt
 def save_job(request):
     if request.method == "POST":
@@ -1010,7 +1087,8 @@ def save_job(request):
 
             # Validate required fields
             required_fields = ["Job title", "location", "qualification", "job_description", 
-                             "required_skills_and_qualifications", "salary_range"]
+                               "required_skills_and_qualifications", "salary_range", 
+                               "employment_type", "application_deadline"]
             missing_fields = [field for field in required_fields if field not in body]
             if missing_fields:
                 return JsonResponse({
@@ -1027,6 +1105,8 @@ def save_job(request):
                 "job_description": body.get("job_description"),
                 "required_skills_and_qualifications": body.get("required_skills_and_qualifications"),
                 "salary_range": body.get("salary_range"),
+                "employment_type": body.get("employment_type"),  # Added employment type
+                "application_deadline": body.get("application_deadline"),  # Added application deadline
                 "posted_by": admin_email,
                 "created_at": datetime.datetime.utcnow(),
                 "published": False
@@ -1037,13 +1117,13 @@ def save_job(request):
             
             response = JsonResponse({
                 "status": "success",
-                "message": "Job posted successfully!"
+                "message": "Job saved successfully!"
             }, status=201)
             response["Access-Control-Allow-Origin"] = "http://localhost:3000"
             return response
 
         except Exception as e:
-            print("Error in post_job:", str(e))  # Debug print
+            print("Error in save_job:", str(e))  # Debug print
             response = JsonResponse({
                 "status": "error",
                 "message": f"Server error: {str(e)}"
@@ -1057,7 +1137,7 @@ def save_job(request):
         }, status=405)
         response["Access-Control-Allow-Origin"] = "http://localhost:3000"
         return response
-    
+
 
 
 @csrf_exempt
@@ -1072,17 +1152,47 @@ def publish_job(request, job_id):
             # Print the job_id for debugging
             print('Publishing job with ID:', job_id)
 
+            # Find the job in the collection before publishing it
+            job = job_collection.find_one({'_id': ObjectId(job_id)})
+
+            if not job:
+                return JsonResponse({"status": "error", "message": "Job not found"}, status=404)
+
             # Update the job's published status
             result = job_collection.update_one(
                 {'_id': ObjectId(job_id)},
-                {'$set': {
-                    'published': True,
-                }}
+                {'$set': {'published': True}}
             )
 
             if result.modified_count > 0:
-                return JsonResponse({"status": "success", "message": "Job published successfully"})
-            return JsonResponse({"status": "error", "message": "Job not found or no changes made"}, status=404)
+                # Send email to the admin after successful publication
+                company = company_collection.find_one({'_id': ObjectId(job['company_id'])})
+                if company:
+                    subject = f"New Job Posted: {job['Job title']}"
+                    body = f"""
+                    Dear Admin,
+
+                    A new job has been posted to the company {company['name']}.
+
+                    Job Title: {job['Job title']}
+                    Location: {job['location']}
+                    Qualification: {job['qualification']}
+                    Job Description: {job['job_description']}
+                    Required Skills and Qualifications: {job['required_skills_and_qualifications']}
+                    Salary Range: {job['salary_range']}
+                    Employment Type: {job['employment_type']}
+                    Application Deadline: {job['application_deadline']}
+
+                    Regards,
+                    Job Portal
+                    """
+                    
+                    # Send email to the admin
+                    send_email(admin_email, subject, body)
+
+                return JsonResponse({"status": "success", "message": "Job published successfully and email sent."})
+
+            return JsonResponse({"status": "error", "message": "No changes made or job not found"}, status=404)
 
         except Exception as e:
             print("Error in publish_job:", str(e))  # Debug print

@@ -21,17 +21,21 @@ const LoginUser = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       const response = await axios.post('http://localhost:8000/login/user/', formData);
+
       if (response.data.status === 'success') {
         // Store user data in localStorage
         localStorage.setItem('user', JSON.stringify(response.data.user));
         navigate('/userdashboard');
       } else {
-        setError(response.data.message || 'Login failed');
+        // Display specific error messages from the server
+        const message = response.data.message || 'Login failed';
+        setError(message);
       }
     } catch (err) {
-      setError('An error occurred during login');
+      setError('An error occurred during login. Please try again.');
     }
   };
 
@@ -95,7 +99,9 @@ const LoginUser = () => {
         <h1 style={styles.title}>User Login</h1>
 
         <div style={styles.formGroup}>
-          <label style={styles.label} htmlFor="email">Email Address</label>
+          <label style={styles.label} htmlFor="email">
+            Email Address
+          </label>
           <input
             style={styles.input}
             type="email"
@@ -108,7 +114,9 @@ const LoginUser = () => {
         </div>
 
         <div style={styles.formGroup}>
-          <label style={styles.label} htmlFor="password">Password</label>
+          <label style={styles.label} htmlFor="password">
+            Password
+          </label>
           <input
             style={styles.input}
             type="password"
