@@ -17,12 +17,11 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if admin is logged in
     let timeoutId;
 
     const logoutUser = () => {
-      localStorage.removeItem('adminData'); // Clear user login data
-      navigate('/login-admin'); // Navigate to the login page
+      localStorage.removeItem('adminData'); 
+      navigate('/login-admin'); 
     };
 
     const resetTimer = () => {
@@ -47,7 +46,7 @@ const AdminDashboard = () => {
     setAdminData(JSON.parse(storedAdminData));
   }, [navigate]);
 
-  // Fetch jobs from the backend
+
   useEffect(() => {
     const fetchJobs = async () => {
       if (!adminData?.email) return;
@@ -75,7 +74,6 @@ const AdminDashboard = () => {
   }, [adminData]);
 
   const handleEditJob = async (job) => {
-    // Navigate to the edit job page with job details
     navigate(`/editjob/${job._id}`, { state: { job } });
   };
 
@@ -96,6 +94,11 @@ const AdminDashboard = () => {
         setError("An error occurred while deleting the job.");
       }
     }
+  };
+
+  const handleLogout = (key) => {
+    localStorage.removeItem(key); 
+    navigate('/login-admin'); 
   };
 
   // Filter jobs based on search query
@@ -218,6 +221,9 @@ const AdminDashboard = () => {
             <Button onClick={() => navigate("/postjobs")}>
               Post New Job
             </Button>
+            <Button onClick={() => handleLogout('adminData')}>
+          Logout
+        </Button>
           </div>
         </div>
 

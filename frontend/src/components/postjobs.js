@@ -18,6 +18,8 @@ const PostJobs = () => {
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
 
   useEffect(() => {
     let timeoutId;
@@ -97,6 +99,7 @@ const PostJobs = () => {
 
       if (response.data.status === "success") {
         setSuccess("Job posted successfully!");
+        alert("Job posted successfully!");
         // Clear form
         setFormData({
           title: "",
@@ -163,6 +166,7 @@ const PostJobs = () => {
 
       if (response.data.status === "success") {
         setSuccess("Job saved successfully!");
+        alert("Job saved successfully!");
         // Clear form
         setFormData({
           title: "",
@@ -196,6 +200,10 @@ const PostJobs = () => {
     } catch (err) {
       setError("An error occurred while saving the job.");
     }
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
   };
 
   const styles = {
@@ -274,6 +282,28 @@ const PostJobs = () => {
       display: "flex",
       gap: "1rem",
       marginTop: "2rem",
+    },
+  };
+
+  const modalStyles = {
+    overlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    },
+    content: {
+      background: 'white',
+      padding: '20px',
+      borderRadius: '8px',
+      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+      textAlign: 'center',
     },
   };
 
@@ -383,6 +413,16 @@ const PostJobs = () => {
           </Button>
         </div>
       </form>
+
+      {modalOpen && (
+        <div style={modalStyles.overlay}>
+          <div style={modalStyles.content}>
+            <h2>Success!</h2>
+            <p>{modalMessage}</p>
+            <button onClick={closeModal}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

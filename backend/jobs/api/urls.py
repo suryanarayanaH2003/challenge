@@ -30,8 +30,9 @@ urlpatterns = [
     path('jobs/<str:job_id>/edit/', edit_job, name='edit_job'),
     path('jobs/<str:job_id>/delete/', delete_job, name='delete_job'),
     path('savejob/', save_job, name='save_job'),
-    path('publish-job/<str:job_id>/', publish_job, name='publish_job'),
+    path('jobs/<str:job_id>/publish/', publish_job, name='publish_job'),
     path('saved-jobs/', get_saved_jobs, name='get_saved_jobs'),
+    path('companies/', get_companies, name='get_companies'),
     ]
 
 

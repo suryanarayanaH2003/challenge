@@ -4,7 +4,7 @@ import axios from "axios";
 import Button from "./ui/button";
 import JobApplicants from "./JobApplicants";
 import DeleteJob from './DeleteJob';
-import SavedJobs from './SavedJobs';
+import superuser from './superuser';
 
 const SavedJob = () => {
   const [jobs, setJobs] = useState([]);
@@ -16,7 +16,7 @@ const SavedJob = () => {
   const [adminData, setAdminData] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showSavedJobs, setShowSavedJobs] = useState(false);
+  const [showsuperuser, setShowsuperuser] = useState(false);
   const navigate = useNavigate();
   const { jobId } = useParams();
 
@@ -56,7 +56,7 @@ const SavedJob = () => {
       if (!adminData?.email) return;
 
       try {
-        const response = await axios.get("http://localhost:8000/saved-jobs", {
+        const response = await axios.get("http://localhost:8000/jobs", {
           headers: {
             'X-User-Email': adminData.email
           }
@@ -212,11 +212,11 @@ const SavedJob = () => {
     <div style={styles.SavedJob}>
       <div style={styles.container}>
         <div style={styles.header}>
-          <h1 style={styles.title}>Saved Jobs</h1>
+          <h1 style={styles.title}>Superuser Dashboard</h1>
           <div>
             
-            <Button onClick={() => navigate("/admindashboard")}>
-              Back to SavedJob
+            <Button onClick={() => navigate("/")}>
+              Logout
             </Button>
           </div>
         </div>
@@ -237,7 +237,7 @@ const SavedJob = () => {
         ) : (
           <div style={styles.grid}>
             {filteredJobs.length === 0 ? (
-              <p>No jobs found.</p>
+              <p>No companies found.</p>
             ) : (
               filteredJobs.map((job) => (
                 <div
@@ -286,8 +286,11 @@ const SavedJob = () => {
                   <div style={styles.buttonContainer}>
                     
                   <Button onClick={() => publishJob(job._id)}>
-              Publish
-            </Button>                  </div>
+              Accept
+            </Button>     
+            <Button onClick={() => publishJob(job._id)}>
+              Reject
+            </Button>                   </div>
                 </div>
               ))
             )}
@@ -301,10 +304,10 @@ const SavedJob = () => {
           />
         )}
 
-        {showSavedJobs && (
-          <SavedJobs
+        {showsuperuser && (
+          <superuser
             adminEmail={adminData?.email}
-            onClose={() => setShowSavedJobs(false)}
+            onClose={() => setShowsuperuser(false)}
           />
         )}
       </div>

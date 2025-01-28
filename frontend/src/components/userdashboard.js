@@ -15,6 +15,38 @@ const UserDashboard = () => {
   const [selectedJob, setSelectedJob] = useState(null);
   const navigate = useNavigate();
 
+
+  useEffect(() => {
+    // Check if admin is logged in
+    let timeoutId;
+
+    const logoutUser = () => {
+      localStorage.removeItem('user'); // Clear user login data
+      navigate('/login-user'); // Navigate to the login page
+    };
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId); // Clear the timeout
+      timeoutId = setTimeout(logoutUser, 600000); // Set timeout to 10 minutes
+    };
+
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    window.addEventListener('click', resetTimer);
+    window.addEventListener('scroll', resetTimer);
+
+    // Start the timer
+    resetTimer();
+
+    const storedUserData = localStorage.getItem('user');
+    if (!storedUserData) {
+      navigate('/login-user'); // Redirect to login if not logged in
+      return;
+    }
+
+    setUserData(JSON.parse(storedUserData));
+  }, [navigate]);
+
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
@@ -23,6 +55,7 @@ const UserDashboard = () => {
     employmentType: "",
     datePosted: ""
   });
+
 
   // Fetch data effect
   useEffect(() => {

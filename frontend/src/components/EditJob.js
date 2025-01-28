@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import Button from './ui/button'; // Assuming you have a Button component for styling
 
 const EditJob = () => {
     const { jobId } = useParams();
     const [job, setJob] = useState({
-        title: '',
+        job_title: '',
         location: '',
         qualification: '',
         job_description: '',
@@ -17,6 +16,7 @@ const EditJob = () => {
     const [successMessage, setSuccessMessage] = useState(null); // State for success message
     const [adminData, setAdminData] = useState(null);
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         const storedAdminData = localStorage.getItem('adminData');
@@ -28,27 +28,30 @@ const EditJob = () => {
     }, [navigate]);
 
     useEffect(() => {
-        const fetchJob = async () => {
-            if (!adminData) return;
-
-            try {
-                const response = await axios.get(`http://localhost:8000/jobs/${jobId}/`, {
-                    headers: {
-                        'X-User-Email': adminData.email
-                    }
-                });
-                if (response.data.status === "success") {
-                    setJob(response.data.job); // Set job data
-                } else {
-                    setError(response.data.message);
-                }
-            } catch (err) {
-                console.error("Error fetching job data:", err);
+        const fetchJobs = async () => {
+          if (!adminData?.email) return;
+    
+          try {
+            const response = await axios.get("http://localhost:8000/jobs/", {
+              headers: {
+                'X-User-Email': adminData.email
+              }
+            });
+    
+            if (response.data.status === "success") {
+              setJob(response.data.jobs || []);
+            } else {
+              setError(response.data.message || "Failed to fetch jobs.");
             }
+          } catch (err) {
+            setError("An error occurred while fetching job data.");
+          } finally {
+            setLoading(false);
+          }
         };
-
-        fetchJob();
-    }, [jobId, adminData]);
+    
+        fetchJobs();
+      }, [adminData]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -123,8 +126,8 @@ const EditJob = () => {
                 <input
                     style={styles.input}
                     type="text"
-                    value={job.title || ''}
-                    onChange={(e) => setJob({ ...job, title: e.target.value })}
+                    value={job.job_title || ''}
+                    onChange={(e) => setJob({ ...job, job_title: e.target.value })}
                     placeholder="Job Title"
                     required
                 />

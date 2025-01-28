@@ -41,8 +41,8 @@ const UserProfile = () => {
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token'); // Clear JWT token
-    navigate('/login-user'); // Redirect to login page
+      localStorage.removeItem('user'); 
+      navigate('/login-user'); 
   };
 
   const styles = {

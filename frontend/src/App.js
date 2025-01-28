@@ -14,6 +14,7 @@ import ForgotPassword from './components/forgotpassword';
 import EditJob from './components/EditJob';
 import DeleteJob from './components/DeleteJob';
 import SavedJobs from './components/SavedJobs';
+import Superuser from './components/superuser';
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
         <Route path="/deletejob/:jobId" element={<DeleteJob />} />
         <Route path="/savedjobs" element={<SavedJobs />} />
         <Route path="/saved-jobs" element={<SavedJobs />} />
+        <Route path="/superuser" element={<Superuser />} />
       </Routes>
     </Router>
   );
