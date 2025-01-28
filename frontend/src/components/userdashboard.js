@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import JobApplicationModal from "./JobApplicationModal";
 import Button from "./ui/button";
+import { Search } from "lucide-react";
 
 const UserDashboard = () => {
   const [jobs, setJobs] = useState([]);
+  const [filteredJobs, setFilteredJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(null);
@@ -21,6 +23,50 @@ const UserDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredJobs, setFilteredJobs] = useState(jobs);
 
+
+  useEffect(() => {
+    // Check if admin is logged in
+    let timeoutId;
+
+    const logoutUser = () => {
+      localStorage.removeItem('user'); 
+      navigate('/login-user');
+    };
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId); 
+      timeoutId = setTimeout(logoutUser, 600000); 
+    };
+
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    window.addEventListener('click', resetTimer);
+    window.addEventListener('scroll', resetTimer);
+
+    // Start the timer
+    resetTimer();
+
+    const storedUserData = localStorage.getItem('user');
+    if (!storedUserData) {
+      navigate('/login-user'); 
+      return;
+    }
+
+    setUserData(JSON.parse(storedUserData));
+  }, [navigate]);
+
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filters, setFilters] = useState({
+    location: "",
+    salaryRange: "",
+    employmentType: "",
+    datePosted: ""
+  });
+
+
+  // Fetch data effect
+
   const jobTitles = Array.from(new Set(jobs.map((jobs) => jobs.job_title)));
   const jobCompanies = Array.from(new Set(jobs.map((jobs) => jobs.company)));
   const joblocation = Array.from(new Set(jobs.map((jobs) => jobs.location)));
@@ -28,6 +74,7 @@ const UserDashboard = () => {
   const jobSkill = Array.from(new Set(jobs.map((jobs) => jobs.required_skills_and_qualifications)));
   const jobSalary = Array.from(new Set(jobs.map((jobs) => jobs.salary_range)));
   
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -41,9 +88,11 @@ const UserDashboard = () => {
         const response = await axios.get("http://localhost:8000/fetchjobs");
         if (response.data.status === "success") {
           setJobs(response.data.jobs || []);
+         
           console.log(response.data.jobs);
           
           setFilteredJobs(response.data.jobs);
+
         } else {
           setError(response.data.message || "Failed to fetch jobs.");
         }
@@ -57,8 +106,11 @@ const UserDashboard = () => {
     fetchData();
   }, [navigate]);
 
+  // Filter jobs based on search term and filters
   useEffect(() => {
-    let timeoutId;
+    let result = [...jobs];
+
+
 
     const resetTimer = () => {
       clearTimeout(timeoutId);
@@ -83,6 +135,7 @@ const UserDashboard = () => {
       window.removeEventListener('scroll', resetTimer);
     };
   }, [navigate]);
+
 
   const fetchCompanyDetails = async (companyId) => {
     try {
@@ -314,6 +367,7 @@ const UserDashboard = () => {
       cursor: "pointer",
       color: "#4a5568",
     },
+
     filter: {
       display: 'flex',
       alignItems: 'center',
@@ -321,7 +375,6 @@ const UserDashboard = () => {
       marginBottom:'20px',
 
     },
-
     '@media (minWidth: 640px)': {
       grid: {
         gridTemplateColumns: "repeat(2, 1fr)",
@@ -345,7 +398,6 @@ const UserDashboard = () => {
         {userData && (
           <p style={styles.welcome}>Welcome, {userData.name}!</p>
         )}
-
 <div>
   <input
     type="text"
@@ -403,12 +455,6 @@ const UserDashboard = () => {
     ))}
   </select> 
   </div>
-  
-
-  
-
-
-
         {loading ? (
           <p>Loading...</p>
         ) : error ? (
@@ -480,6 +526,7 @@ const UserDashboard = () => {
                   >
                     Apply
                   </a>
+
                 </div>
               </div>
             ))}

@@ -10,6 +10,11 @@ import Userdashboard from './components/userdashboard';
 import Home from './components/home';
 import UserProfile from './components/UserProfile';
 import ForgotPassword from './components/forgotpassword';
+import EditJob from './components/EditJob';
+import DeleteJob from './components/DeleteJob';
+import SavedJobs from './components/SavedJobs';
+import Superuser from './components/superuser';
+
 import GuestDashboard from './components/GuestDashboard';
 
 
@@ -28,7 +33,12 @@ function App() {
         <Route path="/userdashboard" element={<Userdashboard />} />
         <Route path="/user-profile" element={<UserProfile />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/editjob/:jobId" element={<EditJob />} />
         <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/deletejob/:jobId" element={<DeleteJob />} />
+        <Route path="/savedjobs" element={<SavedJobs />} />
+        <Route path="/saved-jobs" element={<SavedJobs />} />
+        <Route path="/superuser" element={<Superuser />} />
       </Routes>
     </Router>
   );

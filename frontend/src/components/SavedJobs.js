@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import {  useParams,useNavigate } from "react-router-dom";
 import axios from "axios";
 import Button from "./ui/button";
 import JobApplicants from "./JobApplicants";
 import DeleteJob from './DeleteJob';
 import SavedJobs from './SavedJobs';
 
-const AdminDashboard = () => {
+const SavedJob = () => {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [job, setJob] = useState(null);
   const [error, setError] = useState(null);
   const [adminData, setAdminData] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSavedJobs, setShowSavedJobs] = useState(false);
   const navigate = useNavigate();
+  const { jobId } = useParams();
+
 
   useEffect(() => {
     let timeoutId;
@@ -25,8 +30,8 @@ const AdminDashboard = () => {
     };
 
     const resetTimer = () => {
-      clearTimeout(timeoutId); // Clear the timeout
-      timeoutId = setTimeout(logoutUser, 600000); // Set timeout to 10 minutes
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(logoutUser, 600000); 
     };
 
     window.addEventListener('mousemove', resetTimer);
@@ -34,25 +39,24 @@ const AdminDashboard = () => {
     window.addEventListener('click', resetTimer);
     window.addEventListener('scroll', resetTimer);
 
-    // Start the timer
     resetTimer();
 
     const storedAdminData = localStorage.getItem('adminData');
     if (!storedAdminData) {
-      navigate('/login-admin'); // Redirect to login if not logged in
+      navigate('/login-admin'); 
       return;
     }
 
     setAdminData(JSON.parse(storedAdminData));
   }, [navigate]);
 
-
+  // Fetch jobs from the backend
   useEffect(() => {
     const fetchJobs = async () => {
       if (!adminData?.email) return;
 
       try {
-        const response = await axios.get("http://localhost:8000/jobs/", {
+        const response = await axios.get("http://localhost:8000/saved-jobs", {
           headers: {
             'X-User-Email': adminData.email
           }
@@ -73,43 +77,38 @@ const AdminDashboard = () => {
     fetchJobs();
   }, [adminData]);
 
-  const handleEditJob = async (job) => {
-    navigate(`/editjob/${job._id}`, { state: { job } });
-  };
-
-  const handleDeleteJob = async (jobId) => {
-    if (window.confirm("Are you sure you want to delete this job?")) {
-      try {
-        const response = await axios.delete(`http://localhost:8000/jobs/${jobId}/delete/`, {
-          headers: {
-            'X-User-Email': adminData.email
-          }
+ 
+  const publishJob = async (jobId) => {
+    try {
+        console.log("Attempting to publish job with ID:", jobId); // Debugging print
+        const response = await axios.put(`http://localhost:8000/jobs/${jobId}/publish/`, {}, {
+            headers: {
+                'X-User-Email': adminData.email
+            }
         });
-        if (response.data.status === "success") {
-          setJobs(jobs.filter(job => job._id !== jobId)); // Remove job from state
-        } else {
-          setError(response.data.message || "Failed to delete job.");
-        }
-      } catch (err) {
-        setError("An error occurred while deleting the job.");
-      }
-    }
-  };
 
-  const handleLogout = (key) => {
-    localStorage.removeItem(key); 
-    navigate('/login-admin'); 
-  };
+        if (response.data.status === "success") {
+            alert("Job published successfully!");
+        } else {
+            setError(response.data.message || "Failed to publish job.");
+        }
+    } catch (error) {
+        console.error("Error publishing job:", error);
+        setError("An error occurred while publishing the job.");
+    }
+};
+
+  console.log(jobs); // Log the jobs array to inspect its structure
 
   // Filter jobs based on search query
   const filteredJobs = jobs.filter(job =>
-    job.job_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    job.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    job.qualification.toLowerCase().includes(searchQuery.toLowerCase())
+    (job.job_title && job.job_title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (job.location && job.location.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (job.qualification && job.qualification.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const styles = {
-    adminDashboard: {
+    SavedJob: {
       minHeight: "100vh",
       backgroundColor: "#f9fafb",
     },
@@ -210,32 +209,19 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div style={styles.adminDashboard}>
+    <div style={styles.SavedJob}>
       <div style={styles.container}>
         <div style={styles.header}>
-          <h1 style={styles.title}>Admin Dashboard</h1>
+          <h1 style={styles.title}>Saved Jobs</h1>
           <div>
-          <Button onClick={() => navigate("/saved-jobs")}>
-          View Saved Jobs
-        </Button>
-            <Button onClick={() => navigate("/postjobs")}>
-              Post New Job
+            
+            <Button onClick={() => navigate("/admindashboard")}>
+              Back to SavedJob
             </Button>
-            <Button onClick={() => handleLogout('adminData')}>
-          Logout
-        </Button>
           </div>
         </div>
 
         
-
-        {adminData?.company && (
-          <div style={styles.companyInfo}>
-            <h2 style={styles.companyName}>{adminData.company.name}</h2>
-            <p style={styles.companyEmail}>Admin Email: {adminData.email}</p>
-          </div>
-        )}
-
         <input
           style={styles.searchInput}
           type="text"
@@ -278,32 +264,30 @@ const AdminDashboard = () => {
                   }
                 >
                   <div style={styles.cardHeader}>
-                    <h2 style={styles.cardTitle}>{job.job_title}</h2>
-                  </div>
-                  <div style={styles.cardContent}>
-                    <p>
-                      <strong>Location:</strong> {job.location}
-                    </p>
-                    <p>
-                      <strong>Qualification:</strong> {job.qualification}
-                    </p>
-                    <p>
-                      <strong>Skills:</strong> {job.required_skills_and_qualifications}
-                    </p>
-                    <p>
-                      <strong>Description:</strong> {job.job_description}
-                    </p>
-                    <p>
-                      <strong>Salary:</strong> {job.salary_range}
-                    </p>
-                  </div>
+                  <h2 style={styles.cardTitle}>{job.job_title}</h2>
+                </div>
+                <div style={styles.cardContent}>
+                  <p>
+                    <strong>Company:</strong> {job.company}
+                  </p>
+                  <p>
+                    <strong>Location:</strong> {job.location}
+                  </p>
+                  <p>
+                    <strong>Qualification:</strong> {job.qualification}
+                  </p>
+                  <p>
+                    <strong>Skills:</strong> {job.required_skills_and_qualifications}
+                  </p>
+                  <p>
+                    <strong>Salary:</strong> {job.salary_range}
+                  </p>
+                </div>
                   <div style={styles.buttonContainer}>
-                    <Button onClick={() => handleEditJob(job)}>Edit Job</Button>
-                    <DeleteJob jobId={job._id} adminData={adminData} onDeleteSuccess={(deletedJobId) => {
-                      setJobs(jobs.filter(job => job._id !== deletedJobId));
-                    }} />
-                    <Button onClick={() => setSelectedJob(job)}>View Applicants</Button>
-                  </div>
+                    
+                  <Button onClick={() => publishJob(job._id)}>
+              Publish
+            </Button>                  </div>
                 </div>
               ))
             )}
@@ -328,4 +312,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default SavedJob;

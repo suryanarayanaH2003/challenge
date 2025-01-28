@@ -13,7 +13,7 @@ urlpatterns = [
     path('api/request-admin-email-otp/', request_admin_email_otp, name='request-admin-email-otp'),
     path('api/verify-admin-email-otp/', verify_admin_email_otp, name='verify-admin-email-otp'),
     path('api/forgot-password/request-otp/', forgot_password_request_otp, name='forgot-password-request-otp'),
-    path('api/forgot-password/verify-otp/', verify_otp, name='verify-otp'),  # Ensure this line is present
+    path('api/forgot-password/verify-otp/', verify_otp, name='verify-otp'),
     path('api/reset-password/', reset_password, name='reset-password'),
     path("postjobs/", post_job, name="post_job"),
     path('jobs/', get_jobs, name='get_jobs'),
@@ -21,12 +21,23 @@ urlpatterns = [
     path('company/<str:company_id>/', get_company_details, name='get_company_details'),
     path('company/<str:company_id>/update/', update_company_details, name='update_company_details'),
     path('apply-job/', apply_job, name='apply_job'),
+    path('user-applications/', user_applications, name='user_applications'),
+    path('job-applicants/<str:job_id>/', job_applicants, name='job_applicants'),
+    path('update-application-status/<str:application_id>/', update_application_status, name='update_application_status'),
+    path('logout/', logout_view, name='logout'),
+    path('jobs/<str:job_id>/edit/', edit_job, name='edit_job'),
+    path('jobs/<str:job_id>/delete/', delete_job, name='delete_job'),
+    path('savejob/', save_job, name='save_job'),
+    path('jobs/<str:job_id>/publish/', publish_job, name='publish_job'),
+    path('saved-jobs/', get_saved_jobs, name='get_saved_jobs'),
+    path('companies/', get_companies, name='get_companies'),
+    path('save-user-job/', save_user_job, name='save_user_job'),
     path('guest-dashboard/', guest_dashboard, name='guest_dashboard'),
     path('user-profile/', user_profile, name='user_applications'),
+]
     # path('job-applicants/<str:job_id>/', job_applicants, name='job_applicants'),
     # path('update-application-status/<str:application_id>/', update_application_status, name='update_application_status'),
     # path('logout/', logout_view, name='logout'),  # Add the logout URL
 
-]
 
 

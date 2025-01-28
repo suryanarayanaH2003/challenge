@@ -18,27 +18,29 @@ const PostJobs = () => {
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
 
   useEffect(() => {
     let timeoutId;
 
-  const logoutUser = () => {
-    window.location.href = "{% url 'logout' %}"; // Redirect to logout URL
-  };
+    const logoutUser = () => {
+      window.location.href = "{% url 'logout' %}"; // Redirect to logout URL
+    };
 
-  const resetTimer = () => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(logoutUser, 30000); // 30 seconds
-  };
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(logoutUser, 30000); // 30 seconds
+    };
 
-  // Event listeners for user activity
-  window.addEventListener('mousemove', resetTimer);
-  window.addEventListener('keydown', resetTimer);
-  window.addEventListener('click', resetTimer);
-  window.addEventListener('scroll', resetTimer);
+    // Event listeners for user activity
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    window.addEventListener('click', resetTimer);
+    window.addEventListener('scroll', resetTimer);
 
-  // Start the timer
-  resetTimer();
+    // Start the timer
+    resetTimer();
     // Check if admin is logged in
     const storedAdminData = localStorage.getItem('adminData');
     if (!storedAdminData) {
@@ -97,6 +99,74 @@ const PostJobs = () => {
 
       if (response.data.status === "success") {
         setSuccess("Job posted successfully!");
+        alert("Job posted successfully!");
+        // Clear form
+        setFormData({
+          title: "",
+          location: "",
+          qualification: "",
+          job_description: "",
+          required_skills_and_qualifications: "",
+          salary_range: "",
+        });
+        // Redirect to dashboard after 2 seconds
+        setTimeout(() => {
+          navigate("/admindashboard");
+        }, 2000);
+
+        // Call saveJob after posting
+        await saveJob(response.data.jobId);
+      } else {
+        setError(response.data.message || "Failed to post job.");
+      }
+    } catch (err) {
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        headers: err.response?.headers,
+        data: err.response?.config?.data
+      });
+
+      if (err.response?.status === 401) {
+        setError("You are not authenticated. Please log in again.");
+        navigate('/login-admin');
+      } else if (err.response?.status === 500) {
+        setError("Server error. Please try again later.");
+      } else {
+        setError(err.response?.data?.message || "An error occurred while posting the job. Please try again.");
+      }
+    }
+  };
+
+  const handleSaveJob = async (e) => {
+    e.preventDefault();
+    try {
+      const jobData = {
+        "Job title": formData.title,
+        location: formData.location,
+        qualification: formData.qualification,
+        job_description: formData.job_description,
+        required_skills_and_qualifications: formData.required_skills_and_qualifications,
+        salary_range: formData.salary_range,
+        published: false, // Set published to false
+      };
+
+      const response = await axios.post(
+        "http://localhost:8000/savejob/", // New endpoint for saving jobs
+        jobData,
+        {
+          headers: {
+            'X-User-Email': adminData.email,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+        }
+      );
+
+      if (response.data.status === "success") {
+        setSuccess("Job saved successfully!");
+        alert("Job saved successfully!");
         // Clear form
         setFormData({
           title: "",
@@ -111,26 +181,29 @@ const PostJobs = () => {
           navigate("/admindashboard");
         }, 2000);
       } else {
-        setError(response.data.message || "Failed to post job.");
+        setError(response.data.message || "Failed to save job.");
       }
     } catch (err) {
-      console.error('Error details:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status,
-        headers: err.response?.headers,
-        data: err.response?.config?.data
-      });
-      
-      if (err.response?.status === 401) {
-        setError("You are not authenticated. Please log in again.");
-        navigate('/login-admin');
-      } else if (err.response?.status === 500) {
-        setError("Server error. Please try again later.");
-      } else {
-        setError(err.response?.data?.message || "An error occurred while posting the job. Please try again.");
-      }
+      console.error('Error saving job:', err);
+      setError("An error occurred while saving the job.");
     }
+  };
+
+  const saveJob = async (jobId) => {
+    try {
+      const response = await axios.post("http://localhost:8000/savejob", { jobId });
+      if (response.data.status === "success") {
+        alert("Job saved successfully!");
+      } else {
+        setError(response.data.message || "Failed to save job.");
+      }
+    } catch (err) {
+      setError("An error occurred while saving the job.");
+    }
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
   };
 
   const styles = {
@@ -209,6 +282,28 @@ const PostJobs = () => {
       display: "flex",
       gap: "1rem",
       marginTop: "2rem",
+    },
+  };
+
+  const modalStyles = {
+    overlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    },
+    content: {
+      background: 'white',
+      padding: '20px',
+      borderRadius: '8px',
+      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+      textAlign: 'center',
     },
   };
 
@@ -303,8 +398,11 @@ const PostJobs = () => {
         {success && <p style={styles.success}>{success}</p>}
 
         <div style={styles.buttonContainer}>
-          <Button type="submit" style={{ flex: 1 }}>
+          <Button type="submit" style={{ flex: 1 }} onClick={handleSubmit}>
             Post Job
+          </Button>
+          <Button type="button" style={{ flex: 1 }} onClick={handleSaveJob}>
+            Save Job
           </Button>
           <Button
             type="button"
@@ -315,6 +413,16 @@ const PostJobs = () => {
           </Button>
         </div>
       </form>
+
+      {modalOpen && (
+        <div style={modalStyles.overlay}>
+          <div style={modalStyles.content}>
+            <h2>Success!</h2>
+            <p>{modalMessage}</p>
+            <button onClick={closeModal}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
