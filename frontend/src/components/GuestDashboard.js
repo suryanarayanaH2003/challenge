@@ -6,16 +6,21 @@ import Button from './ui/button';
 const GuestDashboard = () => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
+  const [filteredJobs, setFilteredJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedCompany, setSelectedCompany] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchJobs = async () => {
       try {
         const response = await axios.get('http://localhost:8000/guest-dashboard/');
         if (response.data.status === 'success') {
+          console.log(response.data.jobs);
+          
           setJobs(response.data.jobs);
+          setFilteredJobs(response.data.jobs);
         } else {
           setError(response.data.message || 'Failed to fetch jobs');
         }
@@ -48,6 +53,20 @@ const GuestDashboard = () => {
     }
   };
 
+  const handleSearchChange = (e) => {
+  const query = e.target.value.toLowerCase();
+  setSearchQuery(query);
+  const filtered = jobs.filter((job) =>
+    (job.title && job.title.toLowerCase().includes(query)) ||
+    (job.job_title && job.job_title.toLowerCase().includes(query)) ||
+    (job.company && job.company.toLowerCase().includes(query)) ||
+    (job.location && job.location.toLowerCase().includes(query)) ||
+    (job.qualification && job.qualification.toLowerCase().includes(query)) ||
+    (job.required_skills_and_qualifications && job.required_skills_and_qualifications.toLowerCase().includes(query)) ||
+    (job.salary_range && job.salary_range.toLowerCase().includes(query))
+  );
+  setFilteredJobs(filtered);
+};
   const styles = {
     dashboard: {
       minHeight: '100vh',
@@ -74,6 +93,16 @@ const GuestDashboard = () => {
       aligntext: 'center',
       fontWeight: 'bold',
       color: '#000000',
+    },
+    searchInput: {
+      alignItems: 'center',  
+      padding: '0.5rem',
+      fontSize: '1rem',
+      borderRadius: '0.5rem',
+      border: '1px solid #e2e8f0',
+      width: '100%',
+      maxWidth: '400px',
+      marginBottom: '1rem',
     },
     grid: {
       display: 'grid',
@@ -154,141 +183,153 @@ const GuestDashboard = () => {
     },
   };
 
-return (
+  return (
     <div style={styles.dashboard}>
-        <div style={styles.container}>
-            <div style={styles.header}>
-                <h1 style={styles.title}>Job Portal</h1>
-                <Button onClick={() => navigate('/login-user')}>Login</Button>
-            </div>
-
-            {loading ? (
-                <p>Loading...</p>
-            ) : error ? (
-                <p style={{ color: 'red' }}>{error}</p>
-            ) : (
-                <div style={styles.grid}>
-                    {jobs.map((job) => (
-                        <div
-                            key={job._id}
-                            style={styles.card}
-                            onMouseEnter={(e) =>
-                                e.currentTarget.setAttribute(
-                                    'style',
-                                    Object.entries({
-                                        ...styles.card,
-                                        ...styles.cardHover,
-                                    })
-                                        .map(([key, value]) => `${key}:${value}`)
-                                        .join(';')
-                                )
-                            }
-                            onMouseLeave={(e) =>
-                                e.currentTarget.setAttribute(
-                                    'style',
-                                    Object.entries(styles.card)
-                                        .map(([key, value]) => `${key}:${value}`)
-                                        .join(';')
-                                )
-                            }
-                        >
-                            <div style={styles.cardHeader}>
-                                <h2 style={styles.cardTitle}>{job.title}</h2>
-                            </div>
-                            <div style={styles.cardContent}>
-                                <p>
-                                    <strong>Company:</strong> {job.company}
-                                </p>
-                                <p>
-                                    <strong>Location:</strong> {job.location}
-                                </p>
-                                <p>
-                                    <strong>Qualification:</strong> {job.qualification}
-                                </p>
-                                <p>
-                                    <strong>Skills:</strong> {job.required_skills_and_qualifications}
-                                </p>
-                                <p>
-                                    <strong>Salary:</strong> {job.salary_range}
-                                </p>
-                            </div>
-                            <div>
-                                <a
-                                    href="#"
-                                    style={{ ...styles.button, marginRight: '0.5rem' }}
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        fetchCompanyDetails(job.company_id);
-                                    }}
-                                >
-                                    View Company Details
-                                </a>
-
-                                <a
-                                    href="#"
-                                    style={styles.button}
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        handleApplyClick();
-                                    }}
-                                >
-                                    Apply
-                                </a>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {selectedCompany && (
-                <div style={styles.modal}>
-                    <div style={styles.modalContent}>
-                        <div style={styles.modalHeader}>
-                            <h2 style={styles.modalTitle}>Company Details</h2>
-                            <button
-                                style={styles.closeButton}
-                                onClick={() => setSelectedCompany(null)}
-                            >
-                                ×
-                            </button>
-                        </div>
-                        <div style={styles.cardContent}>
-                            <p>
-                                <strong>Company Name:</strong> {selectedCompany.name}
-                            </p>
-                            <p>
-                                <strong>Description:</strong> {selectedCompany.description}
-                            </p>
-                            <p>
-                                <strong>Website:</strong>{' '}
-                                <a
-                                    href={selectedCompany.website}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={{ color: '#3182ce' }}
-                                >
-                                    {selectedCompany.website}
-                                </a>
-                            </p>
-                            <p>
-                                <strong>Address:</strong> {selectedCompany.address}
-                            </p>
-                            <p>
-                                <strong>Hiring Manager:</strong> {selectedCompany.hiring_manager.name}
-                            </p>
-                            <p>
-                                <strong>Contact Email:</strong> {selectedCompany.hiring_manager.email}
-                            </p>
-                            <p>
-                                <strong>Contact Phone:</strong> {selectedCompany.hiring_manager.phone}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <h1 style={{ ...styles.title, textAlign: 'center' }}>Job Portal</h1>
+          <Button onClick={() => navigate('/login-user')}>Login</Button>
         </div>
+
+        <input
+        
+          type="text"
+          placeholder="Search jobs..."
+          value={searchQuery}
+          onChange={handleSearchChange}
+          style={styles.searchInput}
+        />
+
+        {loading ? (
+          <p>Loading...</p>
+        ) : error ? (
+          <p style={{ color: 'red' }}>{error}</p>
+        ) : (
+          <div style={styles.grid}>
+            {filteredJobs.map((job) => (
+              <div
+                key={job._id}
+                style={styles.card}
+                onMouseEnter={(e) =>
+                  e.currentTarget.setAttribute(
+                    'style',
+                    Object.entries({
+                      ...styles.card,
+                      ...styles.cardHover,
+                    })
+                      .map(([key, value]) => `${key}:${value}`)
+                      .join(';')
+                  )
+                }
+                onMouseLeave={(e) =>
+                  e.currentTarget.setAttribute(
+                    'style',
+                    Object.entries(styles.card)
+                      .map(([key, value]) => `${key}:${value}`)
+                      .join(';')
+                  )
+                }
+              >
+                <div style={styles.cardHeader}>
+                  <h2 style={styles.cardTitle}>{job.title}</h2>
+                </div>
+                <div style={styles.cardContent}>
+                  <p>
+                    <strong>Role:</strong> {job.job_title}
+                    </p> 
+                  <p>
+                    <strong>Company:</strong> {job.company}
+                  </p>
+                  <p>
+                    <strong>Location:</strong> {job.location}
+                  </p>
+                  <p>
+                    <strong>Qualification:</strong> {job.qualification}
+                  </p>
+                  <p>
+                    <strong>Skills:</strong> {job.required_skills_and_qualifications}
+                  </p>
+                  <p>
+                    <strong>Salary:</strong> {job.salary_range}
+                  </p>
+                </div>
+                <div>
+                  <a
+                    href="#"
+                    style={{ ...styles.button, marginRight: '0.5rem' }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      fetchCompanyDetails(job.company_id);
+                    }}
+                  >
+                    View Company Details
+                  </a>
+
+                  <a
+                    href="#"
+                    style={styles.button}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleApplyClick();
+                    }}
+                  >
+                    Apply
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {selectedCompany && (
+          <div style={styles.modal}>
+            <div style={styles.modalContent}>
+              <div style={styles.modalHeader}>
+                <h2 style={styles.modalTitle}>Company Details</h2>
+                <button
+                  style={styles.closeButton}
+                  onClick={() => setSelectedCompany(null)}
+                >
+                  ×
+                </button>
+              </div>
+              <div style={styles.cardContent}>
+                <p>
+                  <strong>Company Name:</strong> {selectedCompany.name}
+                </p>
+                <p>
+                  <strong>Description:</strong> {selectedCompany.description}
+                </p>
+                <p>
+                  <strong>Website:</strong>{' '}
+                  <a
+                    href={selectedCompany.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: '#3182ce' }}
+                  >
+                    {selectedCompany.website}
+                  </a>
+                </p>
+                <p>
+                  <strong>Address:</strong> {selectedCompany.address}
+                </p>
+                <p>
+                  <strong>Hiring Manager:</strong> {selectedCompany.hiring_manager.name}
+                </p>
+                <p>
+                  <strong>Contact Email:</strong> {selectedCompany.hiring_manager.email}
+                </p>
+                <p>
+                  <strong>Contact Phone:</strong> {selectedCompany.hiring_manager.phone}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
-);
+  );
 };
 
 export default GuestDashboard;

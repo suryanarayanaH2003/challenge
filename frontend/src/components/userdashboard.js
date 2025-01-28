@@ -9,24 +9,29 @@ const UserDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(null);
+  const [selectedTitle, setSelectedTitle] = useState("");
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredJobs, setFilteredJobs] = useState(jobs);
+
+  const jobTitles = Array.from(new Set(jobs.map((jobs) => jobs.job_title)));
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get user data from localStorage (set during login)
         const user = JSON.parse(localStorage.getItem('user'));
         if (user) {
           setUserData(user);
         } else {
-          navigate('/login-user'); // Redirect to login if no user data
+          navigate('/login-user');
         }
 
         const response = await axios.get("http://localhost:8000/fetchjobs");
         if (response.data.status === "success") {
           setJobs(response.data.jobs || []);
+          setFilteredJobs(response.data.jobs);
         } else {
           setError(response.data.message || "Failed to fetch jobs.");
         }
@@ -40,28 +45,24 @@ const UserDashboard = () => {
     fetchData();
   }, [navigate]);
 
-  // Session management
   useEffect(() => {
     let timeoutId;
 
     const resetTimer = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        localStorage.removeItem('user'); // Clear user session
-        navigate('/login-user'); // Redirect to login after inactivity
-      }, 100000000); // 1 minute
+        localStorage.removeItem('user');
+        navigate('/login-user');
+      }, 100000000);
     };
 
-    // Event listeners for user activity
     window.addEventListener('mousemove', resetTimer);
     window.addEventListener('keydown', resetTimer);
     window.addEventListener('click', resetTimer);
     window.addEventListener('scroll', resetTimer);
 
-    // Start the timer
     resetTimer();
 
-    // Cleanup event listeners and timeout on component unmount
     return () => {
       clearTimeout(timeoutId);
       window.removeEventListener('mousemove', resetTimer);
@@ -84,9 +85,36 @@ const UserDashboard = () => {
     }
   };
 
+  const handleTitleChange = (event) => {
+    const selected = event.target.value;
+    setSelectedTitle(selected);
+    applyFilters(selected, searchQuery);
+  };
+
+
+
+  const handleSearchChange = (event) => {
+    const query = event.target.value.toLowerCase();
+    setSearchQuery(query);
+    applyFilters(selectedTitle, query);
+  };
+
+  const applyFilters = (title, query) => {
+    const filtered = jobs.filter((jobs) => {
+      const matchesTitle = title ? jobs.job_title === title : true;
+      const matchesSearch = jobs.job_title.toLowerCase().includes(query);
+      return matchesTitle && matchesSearch;
+    });
+    setFilteredJobs(filtered);
+  };
+
+  
+
+  
   const handleApplyClick = (job) => {
     setSelectedJob(job);
   };
+
 
   const styles = {
     dashboard: {
@@ -113,6 +141,41 @@ const UserDashboard = () => {
       fontSize: "1.25rem",
       color: "#4a5568",
       marginBottom: "2rem",
+    },
+    searchContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      marginBottom: '1rem',
+    },
+    searchInput: {
+      padding: '0.5rem',
+      fontSize: '1rem',
+      borderRadius: '0.5rem',
+      border: '1px solid #e2e8f0',
+      width: '100%',
+      maxWidth: '400px',
+      marginRight: '1rem',
+    },
+    filterButton: {
+      padding: '0.5rem 1rem',
+      fontSize: '1rem',
+      borderRadius: '0.5rem',
+      border: 'none',
+      backgroundColor: '#3182ce',
+      color: '#fff',
+      cursor: 'pointer',
+    },
+    filterContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      marginBottom: '1rem',
+    },
+    filterInput: {
+      padding: '0.5rem',
+      fontSize: '1rem',
+      borderRadius: '0.5rem',
+      border: '1px solid #e2e8f0',
+      marginBottom: '0.5rem',
     },
     grid: {
       display: "grid",
@@ -217,13 +280,47 @@ const UserDashboard = () => {
           <p style={styles.welcome}>Welcome, {userData.name}!</p>
         )}
 
+<div className="p-4">
+      {/* Search Bar */}
+      <label htmlFor="job-search" className="block text-lg font-medium mb-2">
+        Search Jobs:
+      </label>
+      <input
+        id="job-search"
+        type="text"
+        value={searchQuery}
+        onChange={handleSearchChange}
+        placeholder="Search by title..."
+        className="p-2 border rounded w-full mb-4"
+      />
+
+      {/* Dropdown for filtering */}
+      <label htmlFor="job-filter" className="block text-lg font-medium mb-2">
+        Filter by Titles:
+      </label>
+      <select
+        id="job-filter"
+        value={selectedTitle}
+        onChange={handleTitleChange}
+        className="p-2 border rounded w-full"
+      >
+        <option value="">All Titles</option>
+        {jobTitles.map((title, index) => (
+          <option key={index} value={title}>
+            {title}
+          </option>
+        ))}
+      </select>
+    </div>
+
+
         {loading ? (
           <p>Loading...</p>
         ) : error ? (
           <p style={{ color: "red" }}>{error}</p>
         ) : (
           <div style={styles.grid}>
-            {jobs.map((job) => (
+            {filteredJobs.map((job) => (
               <div
                 key={job._id}
                 style={styles.card}
@@ -270,7 +367,7 @@ const UserDashboard = () => {
                 <div>
                   <a
                     href="#"
-                    style={styles.button}
+                    style={{ ...styles.button, marginBottom: '0.5rem' }}
                     onClick={(e) => {
                       e.preventDefault();
                       fetchCompanyDetails(job.company_id);
@@ -343,7 +440,6 @@ const UserDashboard = () => {
             </div>
           </div>
         )}
-
         {selectedJob && (
           <JobApplicationModal
             job={selectedJob}

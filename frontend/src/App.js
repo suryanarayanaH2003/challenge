@@ -8,7 +8,6 @@ import AdminDashboard from './components/admindashboard';
 import PostJobs from './components/postjobs';
 import Userdashboard from './components/userdashboard';
 import Home from './components/home';
-import User from './components/user';
 import UserProfile from './components/UserProfile';
 import ForgotPassword from './components/forgotpassword';
 import GuestDashboard from './components/GuestDashboard';
@@ -27,7 +26,6 @@ function App() {
         <Route path="/admindashboard" element={<AdminDashboard />} />
         <Route path="/postjobs" element={<PostJobs />} />
         <Route path="/userdashboard" element={<Userdashboard />} />
-        <Route path="/user" element={<User />} />
         <Route path="/user-profile" element={<UserProfile />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="*" element={<Navigate to="/" replace />} />
