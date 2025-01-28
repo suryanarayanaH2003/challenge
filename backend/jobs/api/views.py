@@ -341,144 +341,30 @@ def login_admin(request):
 
 @csrf_exempt
 def portal_dashboard(request):
-    """
-    API endpoint for portal admin to manage company approvals
-    """
-    try:
-        if request.method == 'GET':
-            # Retrieve all companies with their details
-            pipeline = [
-                {
-                    '$sort': {'created_at': -1}  # Sort by creation date, newest first
-                },
-                {
-                    '$project': {
-                        'name': 1,
-                        'description': 1,
-                        'website': 1,
-                        'address': 1,
-                        'hiring_manager': 1,
-                        'status': 1,
-                        'created_at': 1,
-                        'approved_at': 1
-                    }
-                }
-            ]
+    if request.method == "GET":
+        try:
+            # Fetch all companies
+            companies = list(company_collection.find())
             
-            companies = list(company_collection.aggregate(pipeline))
-            
-            # Convert ObjectId to string for JSON serialization
+            # Convert ObjectId to string for each company
             for company in companies:
-                company['_id'] = str(company['_id'])
+                company["_id"] = str(company["_id"])
             
             return JsonResponse({
-                'status': 'success',
-                'companies': companies
+                "status": "success",
+                "companies": companies
             })
-
-        elif request.method == 'POST':
-            try:
-                data = json.loads(request.body)
-                company_id = data.get('company_id')
-                approval_status = data.get('status')  # 'approved' or 'rejected'
-                
-                if not company_id or not approval_status:
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': 'Company ID and status are required'
-                    }, status=400)
-                
-                current_time = datetime.datetime.utcnow()
-                
-                # Update company status
-                company_update_result = company_collection.update_one(
-                    {'_id': ObjectId(company_id)},
-                    {
-                        '$set': {
-                            'status': approval_status,
-                            'approved_at': current_time if approval_status == 'approved' else None,
-                            'updated_at': current_time
-                        }
-                    }
-                )
-                
-                if company_update_result.modified_count:
-                    # Get company details to update admin status
-                    company = company_collection.find_one({'_id': ObjectId(company_id)})
-                    if company:
-                        # Update admin status in info_collection
-                        info_collection.update_one(
-                            {'email': company['hiring_manager']['email']},
-                            {
-                                '$set': {
-                                    'status': approval_status,
-                                    'updated_at': current_time
-                                }
-                            }
-                        )
-                        
-                        # Send approval email
-                        if approval_status == 'approved':
-                            try:
-                                msg = MIMEMultipart()
-                                msg['From'] = SENDER_EMAIL
-                                msg['To'] = company['hiring_manager']['email']
-                                msg['Subject'] = 'Company Registration Approved'
-                                
-                                body = f'''
-                                Dear {company['hiring_manager']['name']},
-
-                                Congratulations! Your company {company['name']} has been approved on our platform.
-                                You can now log in to your account and start posting jobs.
-
-                                Login Details:
-                                Email: {company['hiring_manager']['email']}
-                                Website: http://localhost:3000/login-admin
-
-                                Best regards,
-                                The Job Portal Team
-                                '''
-                                
-                                msg.attach(MIMEText(body, 'plain'))
-                                
-                                server = smtplib.SMTP('smtp.gmail.com', 587)
-                                server.starttls()
-                                server.login(SENDER_EMAIL, APP_PASSWORD)
-                                server.send_message(msg)
-                                server.quit()
-                            
-                            except Exception as email_error:
-                                print(f"Error sending approval email: {str(email_error)}")
-                                # Continue execution even if email fails
-                    
-                    return JsonResponse({
-                        'status': 'success',
-                        'message': f'Company {approval_status} successfully'
-                    })
-                
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Company not found'
-                }, status=404)
-                
-            except json.JSONDecodeError:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Invalid JSON data'
-                }, status=400)
-        
-        else:
+        except Exception as e:
             return JsonResponse({
-                'status': 'error',
-                'message': 'Method not allowed'
-            }, status=405)
-            
-    except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        }, status=500)
+                "status": "error",
+                "message": str(e)
+            }, status=500)
     
+    return JsonResponse({
+        "status": "error",
+        "message": "Method not allowed"
+    }, status=405)
+
 @csrf_exempt
 def register_user(request):
     if request.method == 'POST':
@@ -826,15 +712,22 @@ def fetch_jobs(request):
     if request.method == "GET":
         try:
             # Fetch all jobs from the collection
-            jobs = list(job_collection.find({"published": True}))
+            jobs = list(job_collection.find({}))
 
             if not jobs:
-                return JsonResponse({"status": "success", "message": "No jobs uploaded."}, status=200)
+                return JsonResponse({
+                    "status": "success", 
+                    "message": "No jobs uploaded.",
+                    "jobs": []
+                }, status=200)
 
             # Convert ObjectId to string for each job
             for job in jobs:
                 job["_id"] = str(job["_id"])
                 job["job_title"] = job.pop("Job title")
+                # Make sure company_id is included and converted to string
+                if "company_id" in job:
+                    job["company_id"] = str(job["company_id"])
 
             return JsonResponse({"status": "success", "jobs": jobs}, status=200)
         except Exception as e:
@@ -850,26 +743,49 @@ def get_company_details(request, company_id):
     """
     if request.method == "GET":
         try:
+            print(f"Received request for company_id: {company_id}")  # Debug log
+            
+            # Add error handling for invalid ObjectId
+            if not ObjectId.is_valid(company_id):
+                return JsonResponse({
+                    'status': 'failed',
+                    'message': 'Invalid company ID format'
+                }, status=400)
+
             company = company_collection.find_one({'_id': ObjectId(company_id)})
+            print(f"Found company: {company is not None}")  # Debug log
+            
             if company:
+                # Convert ObjectId to string and clean up the response
                 company['_id'] = str(company['_id'])
+                
+                # Structure the response data
+                company_data = {
+                    'name': company.get('name'),
+                    'description': company.get('description'),
+                    'website': company.get('website'),
+                    'address': company.get('address'),
+                    
+                }
+                
                 return JsonResponse({
                     'status': 'success',
-                    'company': company
+                    'company': company_data
                 })
             return JsonResponse({
                 'status': 'failed',
                 'message': 'Company not found'
-            })
+            }, status=404)
         except Exception as e:
+            print(f"Error in get_company_details: {str(e)}")  # Debug log
             return JsonResponse({
                 'status': 'error',
                 'message': str(e)
-            })
+            }, status=500)
     return JsonResponse({
         'status': 'failed',
-        'reason': 'Invalid request method'
-    })
+        'message': 'Invalid request method'
+    }, status=405)
 
 @csrf_exempt
 def update_company_details(request, company_id):
@@ -1190,36 +1106,42 @@ def update_application_status(request, application_id):
         return response 
 @csrf_exempt
 def guest_dashboard(request):
-    """
-    API to get jobs posted by admin for guest users
-    """
     if request.method == "GET":
         try:
-            # Fetch all jobs posted by admin
-            jobs = list(job_collection.find({}))
+            # Fetch all published jobs
+            jobs = list(job_collection.find({"published": True}))
+            
+            # Return empty array if no jobs found
+            if not jobs:
+                return JsonResponse({
+                    "status": "success",
+                    "message": "No jobs available",
+                    "jobs": []
+                }, status=200)
 
             # Convert ObjectId to string for each job
             for job in jobs:
                 job["_id"] = str(job["_id"])
-                job["job_title"] = job.pop("Job title")
+                if "Job title" in job:
+                    job["job_title"] = job.pop("Job title")
+                if "company_id" in job:
+                    job["company_id"] = str(job["company_id"])
 
-            response = JsonResponse({
+            return JsonResponse({
                 "status": "success",
                 "jobs": jobs
-            })
+            }, status=200)
             
-            return response
-
         except Exception as e:
-            print("Error in guest_dashboard:", str(e))
-            response = JsonResponse({
+            return JsonResponse({
                 "status": "error",
-                "message": f"Server error: {str(e)}"
+                "message": str(e)
             }, status=500)
-            
-            return response
-    else:
-        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+    
+    return JsonResponse({
+        "status": "error",
+        "message": "Method not allowed"
+    }, status=405)
 
 
 @csrf_exempt

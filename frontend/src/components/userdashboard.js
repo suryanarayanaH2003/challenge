@@ -21,13 +21,14 @@ const UserDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredJobs, setFilteredJobs] = useState(jobs);
 
-  const jobTitles = Array.from(new Set(jobs.map((jobs) => jobs.job_title)));
-  const jobCompanies = Array.from(new Set(jobs.map((jobs) => jobs.company)));
-  const joblocation = Array.from(new Set(jobs.map((jobs) => jobs.location)));
-  const jobQualification = Array.from(new Set(jobs.map((jobs) => jobs.qualification)));
-  const jobSkill = Array.from(new Set(jobs.map((jobs) => jobs.required_skills_and_qualifications)));
-  const jobSalary = Array.from(new Set(jobs.map((jobs) => jobs.salary_range)));
-  
+  // Initialize these after jobs is loaded
+  const jobTitles = Array.from(new Set(jobs?.map((job) => job.job_title) || []));
+  const jobCompanies = Array.from(new Set(jobs?.map((job) => job.company) || []));
+  const joblocation = Array.from(new Set(jobs?.map((job) => job.location) || []));
+  const jobQualification = Array.from(new Set(jobs?.map((job) => job.qualification) || []));
+  const jobSkill = Array.from(new Set(jobs?.map((job) => job.required_skills_and_qualifications) || []));
+  const jobSalary = Array.from(new Set(jobs?.map((job) => job.salary_range) || []));
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -36,18 +37,20 @@ const UserDashboard = () => {
           setUserData(user);
         } else {
           navigate('/login-user');
+          return;
         }
 
-        const response = await axios.get("http://localhost:8000/fetchjobs");
+        const response = await axios.get("http://localhost:8000/fetchjobs/");
         if (response.data.status === "success") {
-          setJobs(response.data.jobs || []);
-          console.log(response.data.jobs);
-          
-          setFilteredJobs(response.data.jobs);
+          const jobsData = response.data.jobs || [];
+          setJobs(jobsData);
+          setFilteredJobs(jobsData);
+          console.log("Jobs loaded:", jobsData);
         } else {
           setError(response.data.message || "Failed to fetch jobs.");
         }
       } catch (err) {
+        console.error("Error fetching data:", err);
         setError("An error occurred while fetching data.");
       } finally {
         setLoading(false);
@@ -98,14 +101,17 @@ const UserDashboard = () => {
 
   const fetchCompanyDetails = async (companyId) => {
     try {
+      
+      console.log("Fetching company details for ID:", companyId); // Debug log
       const response = await axios.get(`http://localhost:8000/company/${companyId}/`);
       if (response.data.status === "success") {
         setSelectedCompany(response.data.company);
       } else {
-        setError("Failed to fetch company details.");
+        setError(response.data.message || "Failed to fetch company details.");
       }
     } catch (err) {
-      setError("An error occurred while fetching company details.");
+      console.error("Error fetching company details:", err);
+      setError(err.response?.data?.message || "An error occurred while fetching company details.");
     }
   };
   
@@ -145,6 +151,8 @@ const UserDashboard = () => {
 
 
   useEffect(() => {
+    if (!jobs.length) return; // Don't apply filters if jobs is empty
+
     const applyFilters = () => {
       const filtered = jobs.filter((job) => {
         const matchesTitle = selectedTitle ? job.job_title === selectedTitle : true;
@@ -153,14 +161,15 @@ const UserDashboard = () => {
         const matchesSkill = selectedskill ? job.required_skills_and_qualifications === selectedskill : true;
         const matchesQualification = selectedQualification ? job.qualification === selectedQualification : true;
         const matchesSalary = selectedsalary ? job.salary_range === selectedsalary : true;
-        const matchesSearchTitle = job.job_title.toLowerCase().includes(searchQuery);
-        const matchesSearchLocation = job.location.toLowerCase().includes(searchQuery);
-        const matchesSearchSkill = job.required_skills_and_qualifications.toLowerCase().includes(searchQuery);
-        const matchesSeacrhSalary =job.salary_range.toLowerCase().includes(searchQuery);
-        const matchesSearchCompanies = job.company.toLowerCase().includes(searchQuery);
-        const matchesSearchQualification = job.qualification.toLowerCase().includes(searchQuery);
-  
-        // Combine all conditions
+        
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearchTitle = job.job_title.toLowerCase().includes(searchLower);
+        const matchesSearchLocation = job.location.toLowerCase().includes(searchLower);
+        const matchesSearchSkill = job.required_skills_and_qualifications.toLowerCase().includes(searchLower);
+        const matchesSeacrhSalary = job.salary_range.toLowerCase().includes(searchLower);
+        const matchesSearchCompanies = job.company.toLowerCase().includes(searchLower);
+        const matchesSearchQualification = job.qualification.toLowerCase().includes(searchLower);
+
         return (
           matchesTitle &&
           matchesCompanies &&
@@ -168,15 +177,20 @@ const UserDashboard = () => {
           matchesSkill &&
           matchesQualification &&
           matchesSalary &&
-          (matchesSearchTitle || matchesSearchLocation || matchesSearchSkill || matchesSeacrhSalary || matchesSearchCompanies || matchesSearchQualification)
+          (matchesSearchTitle || 
+           matchesSearchLocation || 
+           matchesSearchSkill || 
+           matchesSeacrhSalary || 
+           matchesSearchCompanies || 
+           matchesSearchQualification)
         );
       });
-  
+
       setFilteredJobs(filtered);
     };
-  
+
     applyFilters();
-  }, [selectedTitle, selectedCompanies, selectedlocation, selectedskill, selectedQualification, selectedsalary, searchQuery]);
+  }, [selectedTitle, selectedCompanies, selectedlocation, selectedskill, selectedQualification, selectedsalary, searchQuery, jobs]);
   
 
   
@@ -344,6 +358,45 @@ const UserDashboard = () => {
         gridTemplateColumns: "repeat(3, 1fr)",
       },
     },
+    noJobsMessage: {
+      textAlign: 'center',
+      padding: '2rem',
+      backgroundColor: '#fff',
+      borderRadius: '0.75rem',
+      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+      marginTop: '2rem'
+    },
+    noJobsText: {
+      fontSize: '1.2rem',
+      color: '#4a5568',
+      marginBottom: '1rem'
+    },
+    noJobsSubText: {
+      color: '#718096'
+    },
+    companyDetailItem: {
+      marginBottom: '1rem',
+      fontSize: '1rem',
+      lineHeight: '1.5',
+    },
+    companyLink: {
+      color: '#3182ce',
+      textDecoration: 'none',
+      '&:hover': {
+        textDecoration: 'underline',
+      },
+    },
+    hiringManagerSection: {
+      marginTop: '1.5rem',
+      paddingTop: '1.5rem',
+      borderTop: '1px solid #e2e8f0',
+    },
+    sectionTitle: {
+      fontSize: '1.25rem',
+      fontWeight: 'bold',
+      color: '#2d3748',
+      marginBottom: '1rem',
+    },
   };
 
   return (
@@ -415,16 +468,19 @@ const UserDashboard = () => {
     ))}
   </select> 
   </div>
-  
-
-  
-
-
-
         {loading ? (
           <p>Loading...</p>
         ) : error ? (
           <p style={{ color: "red" }}>{error}</p>
+        ) : filteredJobs.length === 0 ? (
+          <div style={styles.noJobsMessage}>
+            <p style={styles.noJobsText}>No jobs found</p>
+            <p style={styles.noJobsSubText}>
+              {searchQuery || selectedTitle || selectedCompanies || selectedlocation || selectedskill || selectedQualification || selectedsalary
+                ? "Try adjusting your filters or search criteria"
+                : "Check back later for new job postings"}
+            </p>
+          </div>
         ) : (
           <div style={styles.grid}>
             {filteredJobs.map((job) => (
@@ -477,7 +533,11 @@ const UserDashboard = () => {
                     style={{ ...styles.button, marginBottom: '0.5rem' }}
                     onClick={(e) => {
                       e.preventDefault();
-                      fetchCompanyDetails(job.company_id);
+                      if (jobs.company_id) {
+                        fetchCompanyDetails(job.company_id);
+                      } else {
+                        setError("Company ID not available");
+                      }
                     }}
                   >
                     View Company Details
@@ -511,38 +571,40 @@ const UserDashboard = () => {
                 </button>
               </div>
               <div style={styles.cardContent}>
-                <p>
-                  <strong>Company Name:</strong> {selectedCompany.name}
+                <p style={styles.companyDetailItem}>
+                  <strong>Company Name:</strong> {selectedCompany.name || 'N/A'}
                 </p>
-                <p>
-                  <strong>Description:</strong> {selectedCompany.description}
+                <p style={styles.companyDetailItem}>
+                  <strong>Description:</strong> {selectedCompany.description || 'N/A'}
                 </p>
-                <p>
+                <p style={styles.companyDetailItem}>
                   <strong>Website:</strong>{" "}
-                  <a
-                    href={selectedCompany.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: "#3182ce" }}
-                  >
-                    {selectedCompany.website}
-                  </a>
+                  {selectedCompany.website ? (
+                    <a
+                      href={selectedCompany.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={styles.companyLink}
+                    >
+                      {selectedCompany.website}
+                    </a>
+                  ) : 'N/A'}
                 </p>
-                <p>
-                  <strong>Address:</strong> {selectedCompany.address}
+                <p style={styles.companyDetailItem}>
+                  <strong>Address:</strong> {selectedCompany.address || 'N/A'}
                 </p>
-                <p>
-                  <strong>Hiring Manager:</strong>{" "}
-                  {selectedCompany.hiring_manager.name}
-                </p>
-                <p>
-                  <strong>Contact Email:</strong>{" "}
-                  {selectedCompany.hiring_manager.email}
-                </p>
-                <p>
-                  <strong>Contact Phone:</strong>{" "}
-                  {selectedCompany.hiring_manager.phone}
-                </p>
+                <div style={styles.hiringManagerSection}>
+                  <h3 style={styles.sectionTitle}>Hiring Manager Details</h3>
+                  <p style={styles.companyDetailItem}>
+                    <strong>Name:</strong> {selectedCompany.hiring_manager?.name || 'N/A'}
+                  </p>
+                  <p style={styles.companyDetailItem}>
+                    <strong>Email:</strong> {selectedCompany.hiring_manager?.email || 'N/A'}
+                  </p>
+                  <p style={styles.companyDetailItem}>
+                    <strong>Phone:</strong> {selectedCompany.hiring_manager?.phone || 'N/A'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

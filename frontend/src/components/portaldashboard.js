@@ -7,6 +7,7 @@ const PortalDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+    const [selectedCompany, setSelectedCompany] = useState(null);
     const navigate = useNavigate();
 
     // Check if admin is logged in
@@ -20,11 +21,17 @@ const PortalDashboard = () => {
     // Fetch companies data
     const fetchCompanies = async () => {
         try {
+            setLoading(true);
             const response = await axios.get('http://localhost:8000/portal-dashboard/');
-            setCompanies(response.data.companies);
-            setLoading(false);
+            if (response.data.companies) {
+                setCompanies(response.data.companies);
+            } else {
+                setCompanies([]);
+            }
         } catch (error) {
+            console.error('Error fetching companies:', error);
             setError('Failed to fetch companies');
+        } finally {
             setLoading(false);
         }
     };
@@ -43,14 +50,26 @@ const PortalDashboard = () => {
 
             if (response.data.status === 'success') {
                 setSuccessMessage('Company approved successfully');
-                // Refresh companies list
-                fetchCompanies();
-                // Clear success message after 3 seconds
+                fetchCompanies(); // Refresh companies list
                 setTimeout(() => setSuccessMessage(''), 3000);
             }
         } catch (error) {
             setError(error.response?.data?.message || 'Failed to approve company');
             setTimeout(() => setError(''), 3000);
+        }
+    };
+
+    const fetchCompanyDetails = async (companyId) => {
+        try {
+            const response = await axios.get(`http://localhost:8000/company/${companyId}/`);
+            if (response.data.status === 'success' && response.data.company) {
+                setSelectedCompany(response.data.company);
+            } else {
+                setError('Failed to fetch company details');
+            }
+        } catch (err) {
+            console.error('Error fetching company details:', err);
+            setError('An error occurred while fetching company details');
         }
     };
 
@@ -115,17 +134,57 @@ const PortalDashboard = () => {
             textAlign: "center",
             marginRight: "1rem",
         },
+        modal: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        modalContent: {
+            backgroundColor: '#ffffff',
+            borderRadius: '0.75rem',
+            padding: '2rem',
+            maxWidth: '600px',
+            width: '100%',
+        },
+        modalHeader: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '1px solid #e2e8f0',
+            paddingBottom: '1rem',
+            marginBottom: '1rem',
+        },
+        modalTitle: {
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            color: '#2d3748',
+        },
+        closeButton: {
+            backgroundColor: 'transparent',
+            color: '#000000',
+            border: 'none',
+            fontSize: '1.5rem',
+            cursor: 'pointer',
+        },
     };
 
-    if (loading) return (
-        <div className="container mt-5">
-            <div className="text-center">
-                <div className="spinner-border" role="status">
-                    <span className="visually-hidden">Loading...</span>
+    if (loading) {
+        return (
+            <div className="container mt-5">
+                <div className="text-center">
+                    <div className="spinner-border" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    }
 
     return (
         <div style={styles.dashboard}>
@@ -152,7 +211,7 @@ const PortalDashboard = () => {
                 )}
 
                 <div style={styles.grid}>
-                    {companies.map((company) => (
+                    {companies.map((company) => company && (
                         <div
                             key={company._id}
                             style={styles.card}
@@ -177,30 +236,83 @@ const PortalDashboard = () => {
                             }
                         >
                             <div style={styles.cardHeader}>
-                                <h2 style={styles.cardTitle}>{company.name}</h2>
+                                <h2 style={styles.cardTitle}>{company.name || 'Unnamed Company'}</h2>
                             </div>
                             <div style={styles.cardContent}>
-                                <p><strong>Website:</strong> {company.website}</p>
-                                <p><strong>Hiring Manager:</strong> {company.hiring_manager.name}</p>
-                                <p><strong>Email:</strong> {company.hiring_manager.email}</p>
-                                <p><strong>Phone:</strong> {company.hiring_manager.phone}</p>
-                                <p><strong>Status:</strong> {company.status}</p>
+                                {/* <p><strong>Website:</strong> {company.website || 'N/A'}</p> */}
+                                <p><strong>Hiring Manager:</strong> {company.hiring_manager?.name || 'N/A'}</p>
+                                <p><strong>Email:</strong> {company.hiring_manager?.email || 'N/A'}</p>
+                                <p><strong>Phone:</strong> {company.hiring_manager?.phone || 'N/A'}</p>
+                                <p><strong>Status:</strong> {company.status || 'N/A'}</p>
                             </div>
-                            {company.status === 'pending' && (
-                                <button
-                                    style={styles.button}
-                                    onClick={() => handleApproval(company._id)}
+                            <div>
+                                <a
+                                    href="#"
+                                    style={{ ...styles.button, marginRight: '0.5rem' }}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        if (company._id) {
+                                            fetchCompanyDetails(company._id);
+                                        }
+                                    }}
                                 >
-                                    Approve Company
-                                </button>
-                            )}
+                                    View Company Details
+                                </a>
+                                {company.status === 'pending' && (
+                                    <button
+                                        style={styles.button}
+                                        onClick={() => handleApproval(company._id)}
+                                    >
+                                        Approve Company
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     ))}
                 </div>
 
-                {companies.length === 0 && (
+                {companies.length === 0 && !loading && (
                     <div className="alert alert-info">
                         No companies found for review.
+                    </div>
+                )}
+
+                {/* Company Details Modal */}
+                {selectedCompany && (
+                    <div style={styles.modal}>
+                        <div style={styles.modalContent}>
+                            <div style={styles.modalHeader}>
+                                <h2 style={styles.modalTitle}>Company Details</h2>
+                                <button
+                                    style={styles.closeButton}
+                                    onClick={() => setSelectedCompany(null)}
+                                >
+                                    ×
+                                </button>
+                            </div>
+                            <div style={styles.cardContent}>
+                                <p>
+                                    <strong>Company Name:</strong> {selectedCompany.name}
+                                </p>
+                                <p>
+                                    <strong>Description:</strong> {selectedCompany.description}
+                                </p>
+                                <p>
+                                    <strong>Website:</strong>{' '}
+                                    <a
+                                        href={selectedCompany.website}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ color: '#3182ce' }}
+                                    >
+                                        {selectedCompany.website}
+                                    </a>
+                                </p>
+                                <p>
+                                    <strong>Address:</strong> {selectedCompany.address}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

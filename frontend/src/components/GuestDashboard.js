@@ -41,7 +41,7 @@ const GuestDashboard = () => {
 
   const fetchCompanyDetails = async (companyId) => {
     try {
-      const response = await axios.get(`http://localhost:8000/company/${companyId}`);
+      const response = await axios.get(`http://localhost:8000/company/${companyId}/`);
       if (response.data.status === 'success') {
         setSelectedCompany(response.data.company);
       } else {
@@ -181,6 +181,31 @@ const GuestDashboard = () => {
       fontSize: '1.5rem',
       cursor: 'pointer',
     },
+    noJobsContainer: {
+      textAlign: 'center',
+      padding: '3rem',
+      backgroundColor: '#ffffff',
+      borderRadius: '0.75rem',
+      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+      margin: '2rem auto',
+      maxWidth: '600px',
+    },
+    noJobsIcon: {
+      fontSize: '3rem',
+      color: '#718096',
+      marginBottom: '1rem',
+    },
+    noJobsTitle: {
+      fontSize: '1.5rem',
+      fontWeight: 'bold',
+      color: '#2d3748',
+      marginBottom: '1rem',
+    },
+    noJobsMessage: {
+      color: '#718096',
+      fontSize: '1.1rem',
+      lineHeight: '1.5',
+    },
   };
 
   return (
@@ -201,9 +226,28 @@ const GuestDashboard = () => {
         />
 
         {loading ? (
-          <p>Loading...</p>
+          <div style={styles.noJobsContainer}>
+            <div className="spinner-border" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <p style={styles.noJobsMessage}>Loading jobs...</p>
+          </div>
         ) : error ? (
-          <p style={{ color: 'red' }}>{error}</p>
+          <div style={styles.noJobsContainer}>
+            <div style={styles.noJobsIcon}>⚠️</div>
+            <p style={styles.noJobsTitle}>Error</p>
+            <p style={styles.noJobsMessage}>{error}</p>
+          </div>
+        ) : filteredJobs.length === 0 ? (
+          <div style={styles.noJobsContainer}>
+            <div style={styles.noJobsIcon}>📋</div>
+            <p style={styles.noJobsTitle}>No Jobs Found</p>
+            <p style={styles.noJobsMessage}>
+              {searchQuery 
+                ? "No jobs match your search criteria. Try adjusting your search terms."
+                : "There are currently no job listings available. Please check back later for new opportunities."}
+            </p>
+          </div>
         ) : (
           <div style={styles.grid}>
             {filteredJobs.map((job) => (
@@ -313,15 +357,6 @@ const GuestDashboard = () => {
                 </p>
                 <p>
                   <strong>Address:</strong> {selectedCompany.address}
-                </p>
-                <p>
-                  <strong>Hiring Manager:</strong> {selectedCompany.hiring_manager.name}
-                </p>
-                <p>
-                  <strong>Contact Email:</strong> {selectedCompany.hiring_manager.email}
-                </p>
-                <p>
-                  <strong>Contact Phone:</strong> {selectedCompany.hiring_manager.phone}
                 </p>
               </div>
             </div>
