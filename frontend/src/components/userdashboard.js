@@ -9,24 +9,41 @@ const UserDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(null);
+  const [selectedTitle, setSelectedTitle] = useState("");
+  const [selectedlocation, setSelectedlocation] = useState("");
+  const [selectedQualification, setSelectedQualification]= useState("");
+  const [selectedsalary, setSelectedsalary]= useState ("");
+  const [selectedskill, setSelectedskill] = useState("");
   const [selectedCompany, setSelectedCompany] = useState(null);
+  const [selectedCompanies, setSelectedCompanies] = useState("");
   const [selectedJob, setSelectedJob] = useState(null);
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredJobs, setFilteredJobs] = useState(jobs);
 
+  const jobTitles = Array.from(new Set(jobs.map((jobs) => jobs.job_title)));
+  const jobCompanies = Array.from(new Set(jobs.map((jobs) => jobs.company)));
+  const joblocation = Array.from(new Set(jobs.map((jobs) => jobs.location)));
+  const jobQualification = Array.from(new Set(jobs.map((jobs) => jobs.qualification)));
+  const jobSkill = Array.from(new Set(jobs.map((jobs) => jobs.required_skills_and_qualifications)));
+  const jobSalary = Array.from(new Set(jobs.map((jobs) => jobs.salary_range)));
+  
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get user data from localStorage (set during login)
         const user = JSON.parse(localStorage.getItem('user'));
         if (user) {
           setUserData(user);
         } else {
-          navigate('/login-user'); // Redirect to login if no user data
+          navigate('/login-user');
         }
 
         const response = await axios.get("http://localhost:8000/fetchjobs");
         if (response.data.status === "success") {
           setJobs(response.data.jobs || []);
+          console.log(response.data.jobs);
+          
+          setFilteredJobs(response.data.jobs);
         } else {
           setError(response.data.message || "Failed to fetch jobs.");
         }
@@ -40,28 +57,24 @@ const UserDashboard = () => {
     fetchData();
   }, [navigate]);
 
-  // Session management
   useEffect(() => {
     let timeoutId;
 
     const resetTimer = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        localStorage.removeItem('user'); // Clear user session
-        navigate('/login-user'); // Redirect to login after inactivity
-      }, 1000000); // 1 minute
+        localStorage.removeItem('user');
+        navigate('/login-user');
+      }, 100000000);
     };
 
-    // Event listeners for user activity
     window.addEventListener('mousemove', resetTimer);
     window.addEventListener('keydown', resetTimer);
     window.addEventListener('click', resetTimer);
     window.addEventListener('scroll', resetTimer);
 
-    // Start the timer
     resetTimer();
 
-    // Cleanup event listeners and timeout on component unmount
     return () => {
       clearTimeout(timeoutId);
       window.removeEventListener('mousemove', resetTimer);
@@ -84,9 +97,81 @@ const UserDashboard = () => {
     }
   };
 
+  const handleTitleChange = (event) => {
+    const selected = event.target.value;
+    setSelectedTitle(selected);
+  };
+
+  const handleLocationChange = (event) => {
+    const selected = event.target.value;
+    setSelectedlocation(selected);
+  };
+  const handleSkillChange = (event) => {
+    const selected = event.target.value;
+    setSelectedskill(selected);
+  };
+  const handleCompanyChange = (event) => {
+    const selected = event.target.value;
+    setSelectedCompanies(selected);
+  };
+  const handleSalaryChange = (event) => {
+    const selected = event.target.value;
+    setSelectedsalary(selected);
+  };
+
+  const handleQualificationChange = (event) => {
+    const selected = event.target.value;
+    setSelectedQualification(selected);
+  };
+
+    
+
+
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value.toLowerCase());
+  };
+
+
+  useEffect(() => {
+    const applyFilters = () => {
+      const filtered = jobs.filter((job) => {
+        const matchesTitle = selectedTitle ? job.job_title === selectedTitle : true;
+        const matchesCompanies = selectedCompanies ? job.company === selectedCompanies : true;
+        const matchesLocation = selectedlocation ? job.location === selectedlocation : true;
+        const matchesSkill = selectedskill ? job.required_skills_and_qualifications === selectedskill : true;
+        const matchesQualification = selectedQualification ? job.qualification === selectedQualification : true;
+        const matchesSalary = selectedsalary ? job.salary_range === selectedsalary : true;
+        const matchesSearchTitle = job.job_title.toLowerCase().includes(searchQuery);
+        const matchesSearchLocation = job.location.toLowerCase().includes(searchQuery);
+        const matchesSearchSkill = job.required_skills_and_qualifications.toLowerCase().includes(searchQuery);
+        const matchesSeacrhSalary =job.salary_range.toLowerCase().includes(searchQuery);
+        const matchesSearchCompanies = job.company.toLowerCase().includes(searchQuery);
+        const matchesSearchQualification = job.qualification.toLowerCase().includes(searchQuery);
+  
+        // Combine all conditions
+        return (
+          matchesTitle &&
+          matchesCompanies &&
+          matchesLocation &&
+          matchesSkill &&
+          matchesQualification &&
+          matchesSalary &&
+          (matchesSearchTitle || matchesSearchLocation || matchesSearchSkill || matchesSeacrhSalary || matchesSearchCompanies || matchesSearchQualification)
+        );
+      });
+  
+      setFilteredJobs(filtered);
+    };
+  
+    applyFilters();
+  }, [selectedTitle, selectedCompanies, selectedlocation, selectedskill, selectedQualification, selectedsalary, searchQuery]);
+  
+
+  
   const handleApplyClick = (job) => {
     setSelectedJob(job);
   };
+
 
   const styles = {
     dashboard: {
@@ -113,6 +198,42 @@ const UserDashboard = () => {
       fontSize: "1.25rem",
       color: "#4a5568",
       marginBottom: "2rem",
+    },
+    searchContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      marginBottom: '1rem',
+    },
+    searchInput: {
+      padding: '0.8rem',
+      marginBottom: '10px',
+      fontSize: '1rem',
+      borderRadius: '0.2rem',
+      border: '1px solid #000000',
+      width: '100%',
+      maxWidth: '400px',
+      marginRight: '1rem',
+    },
+    filterButton: {
+      padding: '0.5rem 3rem',
+      fontSize: '1rem',
+      borderRadius: '0.5rem',
+      border: 'double',
+      backgroundColor: '#ffff',
+      color: '#000000',
+      cursor: 'pointer',
+    },
+    filterContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      marginBottom: '1rem',
+    },
+    filterInput: {
+      padding: '0.5rem',
+      fontSize: '1rem',
+      borderRadius: '0.5rem',
+      border: '1px solidhsl(21, 31.80%, 91.40%)',
+      marginBottom: '0.5rem',
     },
     grid: {
       display: "grid",
@@ -193,6 +314,14 @@ const UserDashboard = () => {
       cursor: "pointer",
       color: "#4a5568",
     },
+    filter: {
+      display: 'flex',
+      alignItems: 'center',
+      gap:'10px',
+      marginBottom:'20px',
+
+    },
+
     '@media (minWidth: 640px)': {
       grid: {
         gridTemplateColumns: "repeat(2, 1fr)",
@@ -217,13 +346,76 @@ const UserDashboard = () => {
           <p style={styles.welcome}>Welcome, {userData.name}!</p>
         )}
 
+<div>
+  <input
+    type="text"
+    style={styles.searchInput}
+    value={searchQuery}
+    onChange={handleSearchChange}
+    placeholder="Search jobs..."
+  />
+  </div>
+  <div className="filter" style={styles.filter}>
+
+  
+  <select value={selectedTitle} onChange={handleTitleChange} style={styles.filterButton}>
+    <option value="">All Titles</option>
+    {jobTitles.map((title, index) => (
+      <option key={index} value={title}>{title}</option>
+    ))}
+  </select>
+
+  <select value={selectedCompanies} onChange={handleCompanyChange} style={styles.filterButton}>
+    <option value="">All Companies</option>
+    {jobCompanies.map((company, index) => (
+      <option key={index} value={company}>{company}</option>
+    ))}
+  </select>
+
+  <select value={selectedlocation} onChange={handleLocationChange} style={styles.filterButton}>
+    <option value="">All Locations</option>
+    {joblocation.map((location, index) => (
+      <option key={index} value={location}>{location}</option>
+    ))}
+  </select>
+  </div>
+  <div className="filter" style={styles.filter}>
+  <select value={selectedskill} onChange={handleSkillChange}
+  style={styles.filterButton}>
+    <option value="">All Skills</option>
+
+    {jobSkill.map((skill, index) => (
+      <option key={index} value={skill}>{skill}</option>
+    ))}
+  </select>
+
+  <select value={selectedQualification} onChange={handleQualificationChange}style={styles.filterButton}>
+    <option value="">All Qualifications</option>
+    {jobQualification.map((qualification, index) => (
+      <option key={index} value={qualification}>{qualification}</option>
+    ))}
+  </select>
+
+  <select value={selectedsalary} onChange={handleSalaryChange}style={styles.filterButton}>
+    <option value="">Salary</option>
+    {jobSalary.map((salary, index) => (
+      <option key={index} value={salary}>{salary}</option>
+    ))}
+  </select> 
+  </div>
+  
+
+  
+
+
+
         {loading ? (
           <p>Loading...</p>
         ) : error ? (
           <p style={{ color: "red" }}>{error}</p>
         ) : (
           <div style={styles.grid}>
-            {jobs.map((job) => (
+            {filteredJobs.map((job) => (
               <div
                 key={job._id}
                 style={styles.card}
@@ -270,7 +462,7 @@ const UserDashboard = () => {
                 <div>
                   <a
                     href="#"
-                    style={styles.button}
+                    style={{ ...styles.button, marginBottom: '0.5rem' }}
                     onClick={(e) => {
                       e.preventDefault();
                       fetchCompanyDetails(job.company_id);
@@ -343,7 +535,6 @@ const UserDashboard = () => {
             </div>
           </div>
         )}
-
         {selectedJob && (
           <JobApplicationModal
             job={selectedJob}

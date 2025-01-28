@@ -10,6 +10,12 @@ const UserProfile = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    degree: '',
+    designation: '',
+    skills: ''
+  });
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user'));
@@ -17,32 +23,59 @@ const UserProfile = () => {
       navigate('/login-user');
       return;
     }
-    setUserData(user);
 
-    const fetchApplications = async () => {
+    const fetchUserData = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/user-applications/', {
+        const response = await axios.get('http://localhost:8000/user-profile/', {
           headers: {
             'X-User-Email': user.email
           }
         });
         if (response.data.status === 'success') {
+          setUserData(response.data.profile);
           setApplications(response.data.applications);
         }
       } catch (err) {
-        setError('Failed to fetch applications');
-        console.error('Error fetching applications:', err);
+        setError('Failed to fetch user data');
+        console.error('Error fetching user data:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchApplications();
+    fetchUserData();
   }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem('token'); // Clear JWT token
     navigate('/login-user'); // Redirect to login page
+  };
+
+  const handleEditChange = (e) => {
+    setEditData({
+      ...editData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.put('http://localhost:8000/user-profile/', editData, {
+        headers: {
+          'X-User-Email': userData.email
+        }
+      });
+      if (response.data.status === 'success') {
+        setUserData({ ...userData, ...editData });
+        setIsEditing(false);
+        setError('');
+      } else {
+        setError(response.data.message || 'Failed to update profile');
+      }
+    } catch (err) {
+      setError('An error occurred during profile update');
+    }
   };
 
   const styles = {
@@ -161,6 +194,17 @@ const UserProfile = () => {
       fontSize: '1rem',
       transition: 'background-color 0.3s ease',
     },
+    editButton: {
+      backgroundColor: '#3182ce',
+      color: '#fff',
+      padding: '0.5rem 1rem',
+      borderRadius: '0.5rem',
+      border: 'none',
+      cursor: 'pointer',
+      fontSize: '1rem',
+      transition: 'background-color 0.3s ease',
+      marginTop: '1rem',
+    },
   };
 
   const getStatusStyle = (status) => {
@@ -224,12 +268,79 @@ const UserProfile = () => {
                 <span style={styles.label}>Mobile</span>
                 <span style={styles.value}>{userData.mobile}</span>
               </div>
-              <div style={styles.infoGroup}>
-                <span style={styles.label}>password</span>
+              {/* <div style={styles.infoGroup}>
+                <span style={styles.label}>Password</span>
                 <span style={styles.value}>{userData.password}</span>
+              </div> */}
+              <div style={styles.infoGroup}>
+                <span style={styles.label}>Degree</span>
+                <span style={styles.value}>{userData.degree}</span>
               </div>
+              <div style={styles.infoGroup}>
+                <span style={styles.label}>Designation</span>
+                <span style={styles.value}>{userData.designation}</span>
+              </div>
+              <div style={styles.infoGroup}>
+                <span style={styles.label}>Skills</span>
+                <span style={styles.value}>{userData.skills}</span>
+              </div>
+              <Button 
+                onClick={() => setIsEditing(true)}
+                style={styles.editButton}
+              >
+                Edit Profile
+              </Button>
             </div>
-                
+          )}
+
+          {isEditing && (
+            <form onSubmit={handleEditSubmit} style={styles.profileInfo}>
+              <div style={styles.infoGroup}>
+                <label style={styles.label} htmlFor="degree">Degree</label>
+                <input
+                  style={styles.input}
+                  type="text"
+                  id="degree"
+                  name="degree"
+                  value={editData.degree}
+                  onChange={handleEditChange}
+                  required
+                />
+              </div>
+              <div style={styles.infoGroup}>
+                <label style={styles.label} htmlFor="designation">Designation</label>
+                <input
+                  style={styles.input}
+                  type="text"
+                  id="designation"
+                  name="designation"
+                  value={editData.designation}
+                  onChange={handleEditChange}
+                  required
+                />
+              </div>
+              <div style={styles.infoGroup}>
+                <label style={styles.label} htmlFor="skills">Skills</label>
+                <input
+                  style={styles.input}
+                  type="text"
+                  id="skills"
+                  name="skills"
+                  value={editData.skills}
+                  onChange={handleEditChange}
+                  required
+                />
+              </div>
+              <Button type="submit" style={styles.editButton}>
+                Save Changes
+              </Button>
+              <Button 
+                onClick={() => setIsEditing(false)}
+                style={styles.editButton}
+              >
+                Cancel
+              </Button>
+            </form>
           )}
 
           {activeTab === 'applications' && (
@@ -284,4 +395,4 @@ const UserProfile = () => {
   );
 };
 
-export default UserProfile; 
+export default UserProfile;
