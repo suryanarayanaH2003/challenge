@@ -3,11 +3,9 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import JobApplicationModal from "./JobApplicationModal";
 import Button from "./ui/button";
-import { Search } from "lucide-react";
 
 const UserDashboard = () => {
   const [jobs, setJobs] = useState([]);
-  const [filteredJobs, setFilteredJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(null);
@@ -23,6 +21,41 @@ const UserDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredJobs, setFilteredJobs] = useState(jobs);
 
+  const jobTitles = Array.from(new Set(jobs.map((jobs) => jobs.job_title)));
+  const jobCompanies = Array.from(new Set(jobs.map((jobs) => jobs.company)));
+  const joblocation = Array.from(new Set(jobs.map((jobs) => jobs.location)));
+  const jobQualification = Array.from(new Set(jobs.map((jobs) => jobs.qualification)));
+  const jobSkill = Array.from(new Set(jobs.map((jobs) => jobs.required_skills_and_qualifications)));
+  const jobSalary = Array.from(new Set(jobs.map((jobs) => jobs.salary_range)));
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user) {
+          setUserData(user);
+        } else {
+          navigate('/login-user');
+        }
+
+        const response = await axios.get("http://localhost:8000/fetchjobs");
+        if (response.data.status === "success") {
+          setJobs(response.data.jobs || []);
+          console.log(response.data.jobs);
+          
+          setFilteredJobs(response.data.jobs);
+        } else {
+          setError(response.data.message || "Failed to fetch jobs.");
+        }
+      } catch (err) {
+        setError("An error occurred while fetching data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [navigate]);
 
   useEffect(() => {
     // Check if admin is logged in
@@ -45,7 +78,6 @@ const UserDashboard = () => {
 
     // Start the timer
     resetTimer();
-
     const storedUserData = localStorage.getItem('user');
     if (!storedUserData) {
       navigate('/login-user'); 
@@ -55,87 +87,14 @@ const UserDashboard = () => {
     setUserData(JSON.parse(storedUserData));
   }, [navigate]);
 
-  // Search and filter states
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState({
-    location: "",
-    salaryRange: "",
-    employmentType: "",
-    datePosted: ""
-  });
-
-
-  // Fetch data effect
-
-  const jobTitles = Array.from(new Set(jobs.map((jobs) => jobs.job_title)));
-  const jobCompanies = Array.from(new Set(jobs.map((jobs) => jobs.company)));
-  const joblocation = Array.from(new Set(jobs.map((jobs) => jobs.location)));
-  const jobQualification = Array.from(new Set(jobs.map((jobs) => jobs.qualification)));
-  const jobSkill = Array.from(new Set(jobs.map((jobs) => jobs.required_skills_and_qualifications)));
-  const jobSalary = Array.from(new Set(jobs.map((jobs) => jobs.salary_range)));
-  
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const user = JSON.parse(localStorage.getItem('user'));
-        if (user) {
-          setUserData(user);
-        } else {
-          navigate('/login-user');
-        }
-
-        const response = await axios.get("http://localhost:8000/fetchjobs");
-        if (response.data.status === "success") {
-          setJobs(response.data.jobs || []);
-         
-          console.log(response.data.jobs);
-          
-          setFilteredJobs(response.data.jobs);
-
-        } else {
-          setError(response.data.message || "Failed to fetch jobs.");
-        }
-      } catch (err) {
-        setError("An error occurred while fetching data.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [navigate]);
-
-  // Filter jobs based on search term and filters
-  useEffect(() => {
-    let result = [...jobs];
-
-
-
-    const resetTimer = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        localStorage.removeItem('user');
-        navigate('/login-user');
-      }, 100000000);
-    };
-
-    window.addEventListener('mousemove', resetTimer);
-    window.addEventListener('keydown', resetTimer);
-    window.addEventListener('click', resetTimer);
-    window.addEventListener('scroll', resetTimer);
-
-    resetTimer();
-
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener('mousemove', resetTimer);
-      window.removeEventListener('keydown', resetTimer);
-      window.removeEventListener('click', resetTimer);
-      window.removeEventListener('scroll', resetTimer);
-    };
-  }, [navigate]);
-
+  //   return () => {
+  //     clearTimeout(timeoutId);
+  //     window.removeEventListener('mousemove', resetTimer);
+  //     window.removeEventListener('keydown', resetTimer);
+  //     window.removeEventListener('click', resetTimer);
+  //     window.removeEventListener('scroll', resetTimer);
+  //   };
+  // }, [navigate]);
 
   const fetchCompanyDetails = async (companyId) => {
     try {
@@ -149,7 +108,7 @@ const UserDashboard = () => {
       setError("An error occurred while fetching company details.");
     }
   };
-
+  
   const handleTitleChange = (event) => {
     const selected = event.target.value;
     setSelectedTitle(selected);
@@ -367,7 +326,6 @@ const UserDashboard = () => {
       cursor: "pointer",
       color: "#4a5568",
     },
-
     filter: {
       display: 'flex',
       alignItems: 'center',
@@ -375,6 +333,7 @@ const UserDashboard = () => {
       marginBottom:'20px',
 
     },
+
     '@media (minWidth: 640px)': {
       grid: {
         gridTemplateColumns: "repeat(2, 1fr)",
@@ -398,6 +357,7 @@ const UserDashboard = () => {
         {userData && (
           <p style={styles.welcome}>Welcome, {userData.name}!</p>
         )}
+
 <div>
   <input
     type="text"
@@ -455,6 +415,12 @@ const UserDashboard = () => {
     ))}
   </select> 
   </div>
+  
+
+  
+
+
+
         {loading ? (
           <p>Loading...</p>
         ) : error ? (
@@ -526,7 +492,6 @@ const UserDashboard = () => {
                   >
                     Apply
                   </a>
-
                 </div>
               </div>
             ))}
