@@ -11,9 +11,17 @@ const UserDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(null);
+  const [selectedTitle, setSelectedTitle] = useState("");
+  const [selectedlocation, setSelectedlocation] = useState("");
+  const [selectedQualification, setSelectedQualification]= useState("");
+  const [selectedsalary, setSelectedsalary]= useState ("");
+  const [selectedskill, setSelectedskill] = useState("");
   const [selectedCompany, setSelectedCompany] = useState(null);
+  const [selectedCompanies, setSelectedCompanies] = useState("");
   const [selectedJob, setSelectedJob] = useState(null);
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredJobs, setFilteredJobs] = useState(jobs);
 
 
   useEffect(() => {
@@ -58,6 +66,15 @@ const UserDashboard = () => {
 
 
   // Fetch data effect
+
+  const jobTitles = Array.from(new Set(jobs.map((jobs) => jobs.job_title)));
+  const jobCompanies = Array.from(new Set(jobs.map((jobs) => jobs.company)));
+  const joblocation = Array.from(new Set(jobs.map((jobs) => jobs.location)));
+  const jobQualification = Array.from(new Set(jobs.map((jobs) => jobs.qualification)));
+  const jobSkill = Array.from(new Set(jobs.map((jobs) => jobs.required_skills_and_qualifications)));
+  const jobSalary = Array.from(new Set(jobs.map((jobs) => jobs.salary_range)));
+  
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -71,7 +88,11 @@ const UserDashboard = () => {
         const response = await axios.get("http://localhost:8000/fetchjobs");
         if (response.data.status === "success") {
           setJobs(response.data.jobs || []);
-          setFilteredJobs(response.data.jobs || []);
+         
+          console.log(response.data.jobs);
+          
+          setFilteredJobs(response.data.jobs);
+
         } else {
           setError(response.data.message || "Failed to fetch jobs.");
         }
@@ -89,51 +110,32 @@ const UserDashboard = () => {
   useEffect(() => {
     let result = [...jobs];
 
-    // Search term filter
-    if (searchTerm) {
-      result = result.filter(job =>
-        (job.job_title && job.job_title.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (job.company && job.company.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
 
-    // Location filter
-    if (filters.location) {
-      result = result.filter(job =>
-        job.location && job.location.toLowerCase().includes(filters.location.toLowerCase())
-      );
-    }
 
-    // Salary range filter
-    if (filters.salaryRange) {
-      const [min, max] = filters.salaryRange.split('-').map(num => parseInt(num.replace(/\D/g, '')));
-      result = result.filter(job => {
-        const jobSalary = parseInt(job.salary_range.replace(/\D/g, ''));
-        return jobSalary >= min && jobSalary <= max;
-      });
-    }
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        localStorage.removeItem('user');
+        navigate('/login-user');
+      }, 100000000);
+    };
 
-    // Employment type filter
-    if (filters.employmentType) {
-      result = result.filter(job =>
-        job.employment_type === filters.employmentType
-      );
-    }
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    window.addEventListener('click', resetTimer);
+    window.addEventListener('scroll', resetTimer);
 
-    // Date posted filter
-    if (filters.datePosted) {
-      const currentDate = new Date();
-      const filterDays = parseInt(filters.datePosted);
-      result = result.filter(job => {
-        const jobDate = new Date(job.posted_date);
-        const diffTime = Math.abs(currentDate - jobDate);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays <= filterDays;
-      });
-    }
+    resetTimer();
 
-    setFilteredJobs(result);
-  }, [searchTerm, filters, jobs]);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+      window.removeEventListener('click', resetTimer);
+      window.removeEventListener('scroll', resetTimer);
+    };
+  }, [navigate]);
+
 
   const fetchCompanyDetails = async (companyId) => {
     try {
@@ -148,27 +150,81 @@ const UserDashboard = () => {
     }
   };
 
+  const handleTitleChange = (event) => {
+    const selected = event.target.value;
+    setSelectedTitle(selected);
+  };
+
+  const handleLocationChange = (event) => {
+    const selected = event.target.value;
+    setSelectedlocation(selected);
+  };
+  const handleSkillChange = (event) => {
+    const selected = event.target.value;
+    setSelectedskill(selected);
+  };
+  const handleCompanyChange = (event) => {
+    const selected = event.target.value;
+    setSelectedCompanies(selected);
+  };
+  const handleSalaryChange = (event) => {
+    const selected = event.target.value;
+    setSelectedsalary(selected);
+  };
+
+  const handleQualificationChange = (event) => {
+    const selected = event.target.value;
+    setSelectedQualification(selected);
+  };
+
+    
+
+
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value.toLowerCase());
+  };
+
+
+  useEffect(() => {
+    const applyFilters = () => {
+      const filtered = jobs.filter((job) => {
+        const matchesTitle = selectedTitle ? job.job_title === selectedTitle : true;
+        const matchesCompanies = selectedCompanies ? job.company === selectedCompanies : true;
+        const matchesLocation = selectedlocation ? job.location === selectedlocation : true;
+        const matchesSkill = selectedskill ? job.required_skills_and_qualifications === selectedskill : true;
+        const matchesQualification = selectedQualification ? job.qualification === selectedQualification : true;
+        const matchesSalary = selectedsalary ? job.salary_range === selectedsalary : true;
+        const matchesSearchTitle = job.job_title.toLowerCase().includes(searchQuery);
+        const matchesSearchLocation = job.location.toLowerCase().includes(searchQuery);
+        const matchesSearchSkill = job.required_skills_and_qualifications.toLowerCase().includes(searchQuery);
+        const matchesSeacrhSalary =job.salary_range.toLowerCase().includes(searchQuery);
+        const matchesSearchCompanies = job.company.toLowerCase().includes(searchQuery);
+        const matchesSearchQualification = job.qualification.toLowerCase().includes(searchQuery);
+  
+        // Combine all conditions
+        return (
+          matchesTitle &&
+          matchesCompanies &&
+          matchesLocation &&
+          matchesSkill &&
+          matchesQualification &&
+          matchesSalary &&
+          (matchesSearchTitle || matchesSearchLocation || matchesSearchSkill || matchesSeacrhSalary || matchesSearchCompanies || matchesSearchQualification)
+        );
+      });
+  
+      setFilteredJobs(filtered);
+    };
+  
+    applyFilters();
+  }, [selectedTitle, selectedCompanies, selectedlocation, selectedskill, selectedQualification, selectedsalary, searchQuery]);
+  
+
+  
   const handleApplyClick = (job) => {
     setSelectedJob(job);
   };
 
-  const handleSaveJob = async (jobId) => {
-    try {
-      const response = await axios.post("http://localhost:8000/save-user-job", {
-        job_id: jobId,
-        user_id: userData._id, // Assuming userData contains the user ID
-      });
-
-      if (response.data.status === "success") {
-        alert("Job saved successfully!");
-      } else {
-        setError(response.data.message || "Failed to save job.");
-      }
-    } catch (error) {
-      console.error("Error saving job:", error);
-      setError("An error occurred while saving the job.");
-    }
-  };
 
   const styles = {
     dashboard: {
@@ -195,6 +251,42 @@ const UserDashboard = () => {
       fontSize: "1.25rem",
       color: "#4a5568",
       marginBottom: "2rem",
+    },
+    searchContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      marginBottom: '1rem',
+    },
+    searchInput: {
+      padding: '0.8rem',
+      marginBottom: '10px',
+      fontSize: '1rem',
+      borderRadius: '0.2rem',
+      border: '1px solid #000000',
+      width: '100%',
+      maxWidth: '400px',
+      marginRight: '1rem',
+    },
+    filterButton: {
+      padding: '0.5rem 3rem',
+      fontSize: '1rem',
+      borderRadius: '0.5rem',
+      border: 'double',
+      backgroundColor: '#ffff',
+      color: '#000000',
+      cursor: 'pointer',
+    },
+    filterContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      marginBottom: '1rem',
+    },
+    filterInput: {
+      padding: '0.5rem',
+      fontSize: '1rem',
+      borderRadius: '0.5rem',
+      border: '1px solidhsl(21, 31.80%, 91.40%)',
+      marginBottom: '0.5rem',
     },
     grid: {
       display: "grid",
@@ -275,39 +367,13 @@ const UserDashboard = () => {
       cursor: "pointer",
       color: "#4a5568",
     },
-    searchContainer: {
-      marginBottom: "2rem",
-      display: "flex",
-      flexDirection: "column",
-      gap: "1rem",
-    },
-    searchBar: {
-      display: "flex",
-      alignItems: "center",
-      gap: "0.5rem",
-      padding: "0.5rem",
-      border: "1px solid #e2e8f0",
-      borderRadius: "0.5rem",
-      backgroundColor: "#fff",
-    },
-    searchInput: {
-      flex: 1,
-      border: "none",
-      outline: "none",
-      padding: "0.5rem",
-      fontSize: "1rem",
-    },
-    filterContainer: {
-      display: "flex",
-      gap: "1rem",
-      flexWrap: "wrap",
-    },
-    select: {
-      padding: "0.5rem",
-      borderRadius: "0.5rem",
-      border: "1px solid #e2e8f0",
-      backgroundColor: "#fff",
-      minWidth: "150px",
+
+    filter: {
+      display: 'flex',
+      alignItems: 'center',
+      gap:'10px',
+      marginBottom:'20px',
+
     },
     '@media (minWidth: 640px)': {
       grid: {
@@ -332,70 +398,63 @@ const UserDashboard = () => {
         {userData && (
           <p style={styles.welcome}>Welcome, {userData.name}!</p>
         )}
+<div>
+  <input
+    type="text"
+    style={styles.searchInput}
+    value={searchQuery}
+    onChange={handleSearchChange}
+    placeholder="Search jobs..."
+  />
+  </div>
+  <div className="filter" style={styles.filter}>
 
-        {/* Search and Filter Section */}
-        <div style={styles.searchContainer}>
-          <div style={styles.searchBar}>
-            <Search size={20} />
-            <input
-              type="text"
-              placeholder="Search jobs by title or company..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={styles.searchInput}
-            />
-          </div>
+  
+  <select value={selectedTitle} onChange={handleTitleChange} style={styles.filterButton}>
+    <option value="">All Titles</option>
+    {jobTitles.map((title, index) => (
+      <option key={index} value={title}>{title}</option>
+    ))}
+  </select>
 
-          <div style={styles.filterContainer}>
-            <select
-              value={filters.location}
-              onChange={(e) => setFilters({ ...filters, location: e.target.value })}
-              style={styles.select}
-            >
-              <option value="">All Locations</option>
-              <option value="remote">Remote</option>
-              <option value="onsite">On-site</option>
-              <option value="hybrid">Hybrid</option>
-            </select>
+  <select value={selectedCompanies} onChange={handleCompanyChange} style={styles.filterButton}>
+    <option value="">All Companies</option>
+    {jobCompanies.map((company, index) => (
+      <option key={index} value={company}>{company}</option>
+    ))}
+  </select>
 
-            <select
-              value={filters.salaryRange}
-              onChange={(e) => setFilters({ ...filters, salaryRange: e.target.value })}
-              style={styles.select}
-            >
-              <option value="">All Salary Ranges</option>
-              <option value="0-50000">$0 - $50,000</option>
-              <option value="50000-100000">$50,000 - $100,000</option>
-              <option value="100000-150000">$100,000 - $150,000</option>
-              <option value="150000+">$150,000+</option>
-            </select>
+  <select value={selectedlocation} onChange={handleLocationChange} style={styles.filterButton}>
+    <option value="">All Locations</option>
+    {joblocation.map((location, index) => (
+      <option key={index} value={location}>{location}</option>
+    ))}
+  </select>
+  </div>
+  <div className="filter" style={styles.filter}>
+  <select value={selectedskill} onChange={handleSkillChange}
+  style={styles.filterButton}>
+    <option value="">All Skills</option>
 
-            <select
-              value={filters.employmentType}
-              onChange={(e) => setFilters({ ...filters, employmentType: e.target.value })}
-              style={styles.select}
-            >
-              <option value="">All Employment Types</option>
-              <option value="full-time">Full-time</option>
-              <option value="part-time">Part-time</option>
-              <option value="contract">Contract</option>
-              <option value="internship">Internship</option>
-            </select>
+    {jobSkill.map((skill, index) => (
+      <option key={index} value={skill}>{skill}</option>
+    ))}
+  </select>
 
-            <select
-              value={filters.datePosted}
-              onChange={(e) => setFilters({ ...filters, datePosted: e.target.value })}
-              style={styles.select}
-            >
-              <option value="">All Dates</option>
-              <option value="1">Last 24 hours</option>
-              <option value="7">Last 7 days</option>
-              <option value="30">Last 30 days</option>
-              <option value="90">Last 90 days</option>
-            </select>
-          </div>
-        </div>
+  <select value={selectedQualification} onChange={handleQualificationChange}style={styles.filterButton}>
+    <option value="">All Qualifications</option>
+    {jobQualification.map((qualification, index) => (
+      <option key={index} value={qualification}>{qualification}</option>
+    ))}
+  </select>
 
+  <select value={selectedsalary} onChange={handleSalaryChange}style={styles.filterButton}>
+    <option value="">Salary</option>
+    {jobSalary.map((salary, index) => (
+      <option key={index} value={salary}>{salary}</option>
+    ))}
+  </select> 
+  </div>
         {loading ? (
           <p>Loading...</p>
         ) : error ? (
@@ -447,9 +506,27 @@ const UserDashboard = () => {
                   </p>
                 </div>
                 <div>
-                  <Button onClick={() => fetchCompanyDetails(job.company_id)}>View Company Details</Button>
-                  <Button onClick={() => handleSaveJob(job._id)}>Save Job</Button>
-                  <Button onClick={() => handleApplyClick(job)}>Apply</Button>
+                  <a
+                    href="#"
+                    style={{ ...styles.button, marginBottom: '0.5rem' }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      fetchCompanyDetails(job.company_id);
+                    }}
+                  >
+                    View Company Details
+                  </a>
+                  <a
+                    href="#"
+                    style={styles.button}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleApplyClick(job);
+                    }}
+                  >
+                    Apply
+                  </a>
+
                 </div>
               </div>
             ))}
@@ -505,7 +582,6 @@ const UserDashboard = () => {
             </div>
           </div>
         )}
-
         {selectedJob && (
           <JobApplicationModal
             job={selectedJob}
