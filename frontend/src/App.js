@@ -14,7 +14,9 @@ import EditJob from './components/EditJob';
 import DeleteJob from './components/DeleteJob';
 import SavedJobs from './components/SavedJobs';
 import Superuser from './components/superuser';
-
+import PortalLogin from './components/portallogin';
+import PortalRegister from './components/portalregister';
+import PortalDashboard from './components/portaldashboard';
 import GuestDashboard from './components/GuestDashboard';
 
 
@@ -24,6 +26,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/register-admin" element={<RegisterAdmin />} />
+        <Route path="/portal-dashboard" element={<PortalDashboard />} />
+        <Route path="/portal-login" element={<PortalLogin />} />
+        <Route path="/portal-register" element={<PortalRegister />} />
         <Route path="/guest-dashboard" element={<GuestDashboard />} />
         <Route path="/register-user" element={<RegisterUser />} />
         <Route path="/login-admin" element={<LoginAdmin />} />

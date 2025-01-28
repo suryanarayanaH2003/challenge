@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 import json
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from bson.objectid import ObjectId
@@ -9,23 +10,138 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import random
 import string
+import bcrypt
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import logout as django_logout
+
 
 
 from pymongo import MongoClient
 client = MongoClient('mongodb+srv://suryanarayanan110803:9894153716@cluster0.shd6d.mongodb.net/')
 db = client['job-portal']
 info_collection = db['info']
+profile_collection = db['profiles']
 job_collection = db['jobs']
 company_collection = db['companies']  
 job_applications_collection = db['job_applications']
 saved_jobs_collection = db['saved_jobs']
-
+portal_collection = db['portal_admin']
 SENDER_EMAIL = "kandaring2k24@gmail.com"
 APP_PASSWORD = "rqdfvijjlywvcxyp"
 
 email_otp_store = {}
+
+@csrf_exempt
+def portal_register(request):
+    """
+    API endpoint for portal admin registration
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Validate required fields for registration
+            required_fields = ['email', 'username', 'password']
+            if not all(field in data for field in required_fields):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Missing required fields'
+                }, status=400)
+            
+            # Check if email already exists
+            if portal_collection.find_one({'email': data['email'], 'role': 'portal_admin'}):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Email already registered'
+                }, status=400)
+            
+            # Hash password and create admin document
+            hashed_password = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt())
+            portal_admin = {
+                'email': data['email'],
+                'username': data['username'],
+                'password': hashed_password,
+                'role': 'portal_admin',
+                'created_at': datetime.datetime.utcnow()
+            }
+            portal_collection.insert_one(portal_admin)
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Portal admin registered successfully'
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid JSON data'
+            }, status=400)
+            
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+            
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Method not allowed'
+    }, status=405)
+
+@csrf_exempt
+def portal_login(request):
+    """
+    API endpoint for portal admin login
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Validate required fields for login
+            if not all(field in data for field in ['email', 'password']):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Email and password are required'
+                }, status=400)
+            
+            # Find portal admin
+            portal_admin = portal_collection.find_one({
+                'email': data['email'],
+                'role': 'portal_admin'
+            })
+            
+            if portal_admin and bcrypt.checkpw(data['password'].encode('utf-8'), portal_admin['password']):
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Login successful',
+                    'admin': {
+                        'email': portal_admin['email'],
+                        'username': portal_admin['username']
+                    }
+                })
+            
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid credentials'
+            }, status=401)
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid JSON data'
+            }, status=400)
+            
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+            
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Method not allowed'
+    }, status=405)
+
+
 
 def generate_otp():
     return ''.join(random.choices(string.digits, k=6))
@@ -113,7 +229,6 @@ def verify_admin_email_otp(request):
         except Exception as e:
             return JsonResponse({'status': 'failed', 'message': str(e)})
     return JsonResponse({'status': 'failed', 'message': 'Invalid request method'})
-
 @csrf_exempt
 def register_admin(request):
     if request.method == 'POST':
@@ -138,24 +253,232 @@ def register_admin(request):
                     'email': email,
                     'phone': data.get('phone')
                 },
-                'created_at': datetime.datetime.utcnow()
+                'status': 'pending',  # Added status field
+                'created_at': datetime.datetime.utcnow(),
+                'approved_at': None
             }
             password = data.get('password')
+            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
             company_result = company_collection.insert_one(company_info)
             company_id = company_result.inserted_id
             admin_info = {
                 'email': email,
-                'password': password,
+                'password': hashed_password,
                 'role': 'admin',
                 'company_id': str(company_id),
-                'email_verified': True,  
+                'email_verified': True,
+                'status': 'pending',  # Added status field
                 'created_at': datetime.datetime.utcnow()
             }            
             info_collection.insert_one(admin_info)
-            return JsonResponse({'status': 'success'})          
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Registration successful. Please wait for admin approval.'
+            })          
         except Exception as e:
             return JsonResponse({'status': 'failed', 'message': str(e)})
     return JsonResponse({'status': 'failed', 'message': 'Invalid request method'})
+
+@csrf_exempt
+def login_admin(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            password = data.get('password')
+            
+            # Find admin in info_collection
+            admin = info_collection.find_one({'email': email, 'role': 'admin'})
+            
+            if not admin:
+                return JsonResponse({
+                    'status': 'failed',
+                    'message': 'Invalid credentials'
+                }, status=401)
+            
+            # Check if admin is approved
+            if admin.get('status') != 'approved':
+                return JsonResponse({
+                    'status': 'failed',
+                    'message': 'Your account is pending approval'
+                }, status=403)
+            
+            # Verify password
+            if not bcrypt.checkpw(password.encode('utf-8'), admin['password']):
+                return JsonResponse({
+                    'status': 'failed',
+                    'message': 'Invalid credentials'
+                }, status=401)
+            
+            # Get company details
+            company = company_collection.find_one({'_id': ObjectId(admin['company_id'])})
+            if company:
+                company['_id'] = str(company['_id'])
+                return JsonResponse({
+                    'status': 'success',
+                    'user': {
+                        'email': admin['email'],
+                        'role': admin['role'],
+                        'company': company
+                    }
+                })
+            
+            return JsonResponse({
+                'status': 'failed',
+                'message': 'Company not found'
+            }, status=403)
+            
+        except Exception as e:
+            return JsonResponse({
+                'status': 'failed',
+                'message': str(e)
+            }, status=500)    
+    return JsonResponse({
+        'status': 'failed',
+        'message': 'Yet not approved'    
+    }, status=403)
+
+@csrf_exempt
+def portal_dashboard(request):
+    """
+    API endpoint for portal admin to manage company approvals
+    """
+    try:
+        if request.method == 'GET':
+            # Retrieve all companies with their details
+            pipeline = [
+                {
+                    '$sort': {'created_at': -1}  # Sort by creation date, newest first
+                },
+                {
+                    '$project': {
+                        'name': 1,
+                        'description': 1,
+                        'website': 1,
+                        'address': 1,
+                        'hiring_manager': 1,
+                        'status': 1,
+                        'created_at': 1,
+                        'approved_at': 1
+                    }
+                }
+            ]
+            
+            companies = list(company_collection.aggregate(pipeline))
+            
+            # Convert ObjectId to string for JSON serialization
+            for company in companies:
+                company['_id'] = str(company['_id'])
+            
+            return JsonResponse({
+                'status': 'success',
+                'companies': companies
+            })
+
+        elif request.method == 'POST':
+            try:
+                data = json.loads(request.body)
+                company_id = data.get('company_id')
+                approval_status = data.get('status')  # 'approved' or 'rejected'
+                
+                if not company_id or not approval_status:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Company ID and status are required'
+                    }, status=400)
+                
+                current_time = datetime.datetime.utcnow()
+                
+                # Update company status
+                company_update_result = company_collection.update_one(
+                    {'_id': ObjectId(company_id)},
+                    {
+                        '$set': {
+                            'status': approval_status,
+                            'approved_at': current_time if approval_status == 'approved' else None,
+                            'updated_at': current_time
+                        }
+                    }
+                )
+                
+                if company_update_result.modified_count:
+                    # Get company details to update admin status
+                    company = company_collection.find_one({'_id': ObjectId(company_id)})
+                    if company:
+                        # Update admin status in info_collection
+                        info_collection.update_one(
+                            {'email': company['hiring_manager']['email']},
+                            {
+                                '$set': {
+                                    'status': approval_status,
+                                    'updated_at': current_time
+                                }
+                            }
+                        )
+                        
+                        # Send approval email
+                        if approval_status == 'approved':
+                            try:
+                                msg = MIMEMultipart()
+                                msg['From'] = SENDER_EMAIL
+                                msg['To'] = company['hiring_manager']['email']
+                                msg['Subject'] = 'Company Registration Approved'
+                                
+                                body = f'''
+                                Dear {company['hiring_manager']['name']},
+
+                                Congratulations! Your company {company['name']} has been approved on our platform.
+                                You can now log in to your account and start posting jobs.
+
+                                Login Details:
+                                Email: {company['hiring_manager']['email']}
+                                Website: http://localhost:3000/login-admin
+
+                                Best regards,
+                                The Job Portal Team
+                                '''
+                                
+                                msg.attach(MIMEText(body, 'plain'))
+                                
+                                server = smtplib.SMTP('smtp.gmail.com', 587)
+                                server.starttls()
+                                server.login(SENDER_EMAIL, APP_PASSWORD)
+                                server.send_message(msg)
+                                server.quit()
+                            
+                            except Exception as email_error:
+                                print(f"Error sending approval email: {str(email_error)}")
+                                # Continue execution even if email fails
+                    
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': f'Company {approval_status} successfully'
+                    })
+                
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Company not found'
+                }, status=404)
+                
+            except json.JSONDecodeError:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Invalid JSON data'
+                }, status=400)
+        
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Method not allowed'
+            }, status=405)
+            
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+    
 @csrf_exempt
 def register_user(request):
     if request.method == 'POST':
@@ -168,17 +491,37 @@ def register_user(request):
         existing_user = info_collection.find_one({'email': email})
         if existing_user:
             return JsonResponse({'status': 'failed', 'message': 'Email already registered'})
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         info_collection.insert_one({
             'name': name,
             'email': email,
             'mobile': mobile,
-            'password': password,
+            'password': hashed_password,
             'role': role,
             'email_verified': True  
         })
         return JsonResponse({'status': 'success'})
     return JsonResponse({'status': 'failed', 'reason': 'Invalid request method'})
+ 
 
+@csrf_exempt
+def login_user(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        email = data.get('email')
+        password = data.get('password')
+        user = info_collection.find_one({'email': email, 'role': 'user'})
+        if user and bcrypt.checkpw(password.encode('utf-8'), user['password']):
+            return JsonResponse({
+                'status': 'success',
+                'user': {
+                    'name': user.get('name'),
+                    'email': user.get('email'),
+                    'role': user.get('role')
+                }
+            })
+        return JsonResponse({'status': 'failed', 'reason': 'Invalid credentials'})
+    return JsonResponse({'status': 'failed', 'reason': 'Invalid request method'})
 
 def save_user_job(request):
     if request.method == 'POST':
@@ -195,54 +538,6 @@ def save_user_job(request):
     return JsonResponse({'status': 'failed', 'reason': 'Invalid request method.'}, status=405)
 
 
-@csrf_exempt
-def login_admin(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        email = data.get('email')
-        password = data.get('password')
-        user = info_collection.find_one({
-            'email': email, 
-            'password': password, 
-            'role': 'admin'
-        })
-        if user:
-            company = company_collection.find_one({'_id': ObjectId(user['company_id'])})
-            if company:
-                company['_id'] = str(company['_id'])  
-                return JsonResponse({
-                    'status': 'success',
-                    'user': {
-                        'email': user.get('email'),
-                        'role': user.get('role'),
-                        'company': company
-                    }
-                })
-        return JsonResponse({'status': 'failed', 'reason': 'Invalid credentials'})
-    return JsonResponse({'status': 'failed', 'reason': 'Invalid request method'})
-
-@csrf_exempt
-def login_user(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        email = data.get('email')
-        password = data.get('password')
-        user = info_collection.find_one({
-            'email': email, 
-            'password': password, 
-            'role': 'user'
-        })
-        if user:
-            return JsonResponse({
-                'status': 'success',
-                'user': {
-                    'name': user.get('name'),
-                    'email': user.get('email'),
-                    'role': user.get('role')
-                }
-            })
-        return JsonResponse({'status': 'failed', 'reason': 'Invalid credentials'})
-    return JsonResponse({'status': 'failed', 'reason': 'Invalid request method'})
   
 @csrf_exempt
 def user(request):
@@ -893,6 +1188,126 @@ def update_application_status(request, application_id):
         }, status=405)
         response["Access-Control-Allow-Origin"] = "http://localhost:3000"
         return response 
+@csrf_exempt
+def guest_dashboard(request):
+    """
+    API to get jobs posted by admin for guest users
+    """
+    if request.method == "GET":
+        try:
+            # Fetch all jobs posted by admin
+            jobs = list(job_collection.find({}))
+
+            # Convert ObjectId to string for each job
+            for job in jobs:
+                job["_id"] = str(job["_id"])
+                job["job_title"] = job.pop("Job title")
+
+            response = JsonResponse({
+                "status": "success",
+                "jobs": jobs
+            })
+            
+            return response
+
+        except Exception as e:
+            print("Error in guest_dashboard:", str(e))
+            response = JsonResponse({
+                "status": "error",
+                "message": f"Server error: {str(e)}"
+            }, status=500)
+            
+            return response
+    else:
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def user_profile(request):
+    """
+    API to get user profile and job applications, and update user profile
+    """
+    if request.method == "GET":
+        try:
+            # Get user's email from request
+            user_email = request.headers.get('X-User-Email')
+            if not user_email:
+                return JsonResponse({"status": "error", "message": "User not authenticated"}, status=401)
+
+            # Get user details
+            user = info_collection.find_one({'email': user_email, 'role': 'user'})
+            if not user:
+                return JsonResponse({"status": "error", "message": "User not found"}, status=404)
+
+            # Fetch all applications for this user
+            applications = list(job_applications_collection.find({"applicant_email": user_email}))
+
+            # Convert ObjectId to string for each application
+            for application in applications:
+                application["_id"] = str(application["_id"])
+
+            # Fetch user profile details from profile_collection
+            profile = profile_collection.find_one({'email': user_email})
+            if profile:
+                profile['_id'] = str(profile['_id'])
+
+            response = JsonResponse({
+                "status": "success",
+                "applications": applications,
+                "profile": profile
+            })
+            
+            return response
+
+        except Exception as e:
+            print("Error in user_profile:", str(e))
+            response = JsonResponse({
+                "status": "error",
+                "message": f"Server error: {str(e)}"
+            }, status=500)
+            
+            return response
+
+    elif request.method == "PUT":
+        try:
+            # Get user's email from request
+            user_email = request.headers.get('X-User-Email')
+            if not user_email:
+                return JsonResponse({"status": "error", "message": "User not authenticated"}, status=401)
+
+            # Get user details
+            user = info_collection.find_one({'email': user_email})
+            if not user:
+                return JsonResponse({"status": "error", "message": "User not found"}, status=404)
+
+            # Parse the request body
+            data = json.loads(request.body)
+            degree = data.get('degree')
+            designation = data.get('designation')
+            skills = data.get('skills')
+
+            if not degree or not designation or not skills:
+                return JsonResponse({"status": "error", "message": "Degree, designation, and skills are required"}, status=400)
+
+            # Update user profile in profile_collection
+            profile_collection.update_one(
+                {'email': user_email},
+                {'$set': {
+                    'degree': degree,
+                    'designation': designation,
+                    'skills': skills
+                }},
+                upsert=True
+            )
+
+            return JsonResponse({"status": "success", "message": "Profile updated successfully"})
+
+        except Exception as e:
+            print("Error in user_profile:", str(e))
+            return JsonResponse({"status": "error", "message": f"Server error: {str(e)}"}, status=500)
+    else:
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+    
 
 @login_required
 def logout_view(request):
@@ -1156,3 +1571,113 @@ def get_users(request):
         return JsonResponse({"status": "error", "message": "Invalid request method."}, status=405)
     
 
+@csrf_exempt
+def portal_register(request):
+    """
+    API endpoint for portal admin registration
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Validate required fields for registration
+            required_fields = ['email', 'username', 'password']
+            if not all(field in data for field in required_fields):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Missing required fields'
+                }, status=400)
+            
+            # Check if email already exists
+            if portal_collection.find_one({'email': data['email'], 'role': 'portal_admin'}):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Email already registered'
+                }, status=400)
+            
+            # Hash password and create admin document
+            hashed_password = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt())
+            portal_admin = {
+                'email': data['email'],
+                'username': data['username'],
+                'password': hashed_password,
+                'role': 'portal_admin',
+                'created_at': datetime.datetime.utcnow()
+            }
+            portal_collection.insert_one(portal_admin)
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Portal admin registered successfully'
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid JSON data'
+            }, status=400)
+            
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+            
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Method not allowed'
+    }, status=405)
+
+@csrf_exempt
+def portal_login(request):
+    """
+    API endpoint for portal admin login
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Validate required fields for login
+            if not all(field in data for field in ['email', 'password']):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Email and password are required'
+                }, status=400)
+            
+            # Find portal admin
+            portal_admin = portal_collection.find_one({
+                'email': data['email'],
+                'role': 'portal_admin'
+            })
+            
+            if portal_admin and bcrypt.checkpw(data['password'].encode('utf-8'), portal_admin['password']):
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Login successful',
+                    'admin': {
+                        'email': portal_admin['email'],
+                        'username': portal_admin['username']
+                    }
+                })
+            
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid credentials'
+            }, status=401)
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid JSON data'
+            }, status=400)
+            
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+            
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Method not allowed'
+    }, status=405)

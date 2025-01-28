@@ -58,7 +58,8 @@ CORS_ALLOW_ALL_ORIGINS = False
 APPEND_SLASH= False
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',  # Example: React development server
+    'http://localhost:3000', 
+     'http://localhost:3001',# Example: React development server
 ]
 CORS_ALLOW_HEADERS = [
     'accept',

@@ -4,7 +4,7 @@ import axios from 'axios';
 import Button from './ui/button';
 
 const LoginAdmin = () => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -25,10 +25,10 @@ const LoginAdmin = () => {
         localStorage.setItem('adminData', JSON.stringify(response.data.user));
         navigate('/admindashboard');
       } else {
-        setMessage('Login failed.');
+        setMessage(response.data.message || 'Login failed.');
       }
     } catch (error) {
-      setMessage('An error occurred.');
+      setMessage(error.response?.data?.message || 'An error occurred.');
     }
   };
 
