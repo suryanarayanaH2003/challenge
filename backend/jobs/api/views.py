@@ -10,6 +10,7 @@ from email.mime.multipart import MIMEMultipart
 import random
 import string
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout as django_logout
 
 
 from pymongo import MongoClient
@@ -20,8 +21,6 @@ job_collection = db['jobs']
 company_collection = db['companies']  
 job_applications_collection = db['job_applications']
 saved_jobs_collection = db['saved_jobs']
-
-
 
 SENDER_EMAIL = "kandaring2k24@gmail.com"
 APP_PASSWORD = "rqdfvijjlywvcxyp"
@@ -179,6 +178,23 @@ def register_user(request):
         })
         return JsonResponse({'status': 'success'})
     return JsonResponse({'status': 'failed', 'reason': 'Invalid request method'})
+
+
+def save_user_job(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            job_id = data.get('job_id')
+            user_id = data.get('user_id')  # Assuming you have a user_id to associate with the saved job
+            
+            # Save the job to the saved_jobs_collection
+            saved_jobs_collection.insert_one({'job_id': job_id, 'user_id': user_id})
+            return JsonResponse({'status': 'success', 'message': 'Job saved successfully.'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    return JsonResponse({'status': 'failed', 'reason': 'Invalid request method.'}, status=405)
+
+
 @csrf_exempt
 def login_admin(request):
     if request.method == 'POST':
@@ -880,8 +896,8 @@ def update_application_status(request, application_id):
 
 @login_required
 def logout_view(request):
-    logout(request)  # Log out the user
-    return redirect('login')  # Redirect to the login page
+    django_logout(request)
+    return JsonResponse({"status": "success", "message": "Logged out successfully."})
 
 @csrf_exempt
 def edit_job(request, job_id):

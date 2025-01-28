@@ -56,7 +56,7 @@ const SavedJob = () => {
       if (!adminData?.email) return;
 
       try {
-        const response = await axios.get("http://localhost:8000/jobs", {
+        const response = await axios.get("http://localhost:8000/-jobs", {
           headers: {
             'X-User-Email': adminData.email
           }

@@ -21,13 +21,13 @@ const UserDashboard = () => {
     let timeoutId;
 
     const logoutUser = () => {
-      localStorage.removeItem('user'); // Clear user login data
-      navigate('/login-user'); // Navigate to the login page
+      localStorage.removeItem('user'); 
+      navigate('/login-user');
     };
 
     const resetTimer = () => {
-      clearTimeout(timeoutId); // Clear the timeout
-      timeoutId = setTimeout(logoutUser, 600000); // Set timeout to 10 minutes
+      clearTimeout(timeoutId); 
+      timeoutId = setTimeout(logoutUser, 600000); 
     };
 
     window.addEventListener('mousemove', resetTimer);
@@ -40,7 +40,7 @@ const UserDashboard = () => {
 
     const storedUserData = localStorage.getItem('user');
     if (!storedUserData) {
-      navigate('/login-user'); // Redirect to login if not logged in
+      navigate('/login-user'); 
       return;
     }
 
@@ -150,6 +150,24 @@ const UserDashboard = () => {
 
   const handleApplyClick = (job) => {
     setSelectedJob(job);
+  };
+
+  const handleSaveJob = async (jobId) => {
+    try {
+      const response = await axios.post("http://localhost:8000/save-user-job", {
+        job_id: jobId,
+        user_id: userData._id, // Assuming userData contains the user ID
+      });
+
+      if (response.data.status === "success") {
+        alert("Job saved successfully!");
+      } else {
+        setError(response.data.message || "Failed to save job.");
+      }
+    } catch (error) {
+      console.error("Error saving job:", error);
+      setError("An error occurred while saving the job.");
+    }
   };
 
   const styles = {
@@ -430,6 +448,7 @@ const UserDashboard = () => {
                 </div>
                 <div>
                   <Button onClick={() => fetchCompanyDetails(job.company_id)}>View Company Details</Button>
+                  <Button onClick={() => handleSaveJob(job._id)}>Save Job</Button>
                   <Button onClick={() => handleApplyClick(job)}>Apply</Button>
                 </div>
               </div>

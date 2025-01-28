@@ -33,6 +33,8 @@ urlpatterns = [
     path('jobs/<str:job_id>/publish/', publish_job, name='publish_job'),
     path('saved-jobs/', get_saved_jobs, name='get_saved_jobs'),
     path('companies/', get_companies, name='get_companies'),
+    path('save-user-job/', save_user_job, name='save_user_job'),
     ]
+
 
 
