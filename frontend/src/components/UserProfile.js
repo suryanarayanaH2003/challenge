@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Button from './ui/button';
+import JobApplicationModal from './JobApplicationModal';
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -16,6 +17,8 @@ const UserProfile = () => {
     designation: '',
     skills: ''
   });
+  const [savedJobs, setSavedJobs] = useState([]);
+  const [selectedJob, setSelectedJob] = useState(null);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user'));
@@ -45,6 +48,26 @@ const UserProfile = () => {
 
     fetchUserData();
   }, [navigate]);
+
+  useEffect(() => {
+    const fetchSavedJobs = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/save-userjob/', {
+          params: { email: userData?.email }
+        });
+
+        if (response.data.status === 'success') {
+          setSavedJobs(response.data.saved_jobs);
+        } else {
+          console.error(response.data.message);
+        }
+      } catch (error) {
+        console.error('Error fetching saved jobs:', error);
+      }
+    };
+
+    fetchSavedJobs();
+  }, [userData?.email]);
 
   const handleLogout = () => {
       localStorage.removeItem('user'); 
@@ -76,6 +99,10 @@ const UserProfile = () => {
     } catch (err) {
       setError('An error occurred during profile update');
     }
+  };
+
+  const handleApplyClick = (job) => {
+    setSelectedJob(job);
   };
 
   const styles = {
@@ -205,6 +232,28 @@ const UserProfile = () => {
       transition: 'background-color 0.3s ease',
       marginTop: '1rem',
     },
+    sectionTitle: {
+      fontSize: '1.5rem',
+      fontWeight: 'bold',
+      color: '#1a202c',
+      marginBottom: '1rem',
+    },
+    savedJobCard: {
+      backgroundColor: 'white',
+      padding: '1.5rem',
+      borderRadius: '8px',
+      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
+      marginBottom: '1rem',
+    },
+    applyButton: {
+      backgroundColor: '#3182ce',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      borderRadius: '4px',
+      border: 'none',
+      cursor: 'pointer',
+      marginTop: '1rem',
+    }
   };
 
   const getStatusStyle = (status) => {
@@ -250,6 +299,15 @@ const UserProfile = () => {
             onClick={() => setActiveTab('applications')}
           >
             Job Applications
+          </button>
+          <button
+            style={{
+              ...styles.tab,
+              ...(activeTab === 'savedJobs' ? styles.activeTab : styles.inactiveTab),
+            }}
+            onClick={() => setActiveTab('savedJobs')}
+          >
+            Saved Jobs
           </button>
         </div>
 
@@ -382,6 +440,45 @@ const UserProfile = () => {
                     </div>
                   </div>
                 ))
+              )}
+            </div>
+          )}
+
+          {activeTab === 'savedJobs' && (
+            <div>
+              <h2 style={styles.sectionTitle}>Your Saved Jobs</h2>
+              {savedJobs.length === 0 ? (
+                <p>No saved jobs found.</p>
+              ) : (
+                <div>
+                  {savedJobs.map((job) => (
+                    <div key={job._id} style={styles.savedJobCard}>
+                      <h3>{job.job_title}</h3>
+                      <p>Company: {job.company_name}</p>
+                      <p>Location: {job.location}</p>
+                      <p>Qualification: {job.qualification}</p>
+                      <p>Required Skills: {job.skills}</p>
+                      <p>Salary Range: {job.salary}</p>
+                      <p>Job Description: {job.job_description}</p>
+                      <p>Employment Type: {job.employement_type}</p>
+                      <p>Application Deadline: {job.application_deadline}</p>
+                      <button 
+                        style={styles.applyButton}
+                        onClick={() => handleApplyClick(job)}
+                      >
+                        Apply Now
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {selectedJob && (
+                <JobApplicationModal
+                  job={selectedJob}
+                  userData={userData}
+                  onClose={() => setSelectedJob(null)}
+                />
               )}
             </div>
           )}

@@ -5,119 +5,83 @@ import axios from 'axios';
 const EditJob = () => {
     const { jobId } = useParams();
     const [job, setJob] = useState({
-        job_title: '',
+        Job_title: '',
         location: '',
         qualification: '',
         job_description: '',
         required_skills_and_qualifications: '',
-        salary_range: ''
+        salary_range: '',
+        employment_type: '',
+        application_deadline: ''
     });
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [successMessage, setSuccessMessage] = useState(null); // State for success message
-    const [adminData, setAdminData] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        const storedAdminData = localStorage.getItem('adminData');
-        if (storedAdminData) {
-            setAdminData(JSON.parse(storedAdminData));
-        } else {
-            navigate(''); // Redirect if admin data is not found
-        }
-    }, [navigate]);
+        const fetchJobDetails = async () => {
+            try {
+                const storedAdminData = localStorage.getItem('adminData');
+                if (!storedAdminData) {
+                    navigate('/'); // Redirect if no admin data found
+                    return;
+                }
+                const adminData = JSON.parse(storedAdminData);
 
-    useEffect(() => {
-        const fetchJobs = async () => {
-          if (!adminData?.email) return;
-    
-          try {
-            const response = await axios.get("http://localhost:8000/jobs/", {
-              headers: {
-                'X-User-Email': adminData.email
-              }
-            });
-    
-            if (response.data.status === "success") {
-              setJob(response.data.jobs || []);
-            } else {
-              setError(response.data.message || "Failed to fetch jobs.");
+                const response = await axios.get(`http://localhost:8000/job-details/${jobId}/`, {
+                    headers: {
+                        'X-User-Email': adminData.email
+                    }
+                });
+
+                if (response.data.status === "success") {
+                    setJob(response.data.job); // Populate the form with fetched job details
+                } else {
+                    setError(response.data.message || "Failed to fetch job details.");
+                }
+            } catch (err) {
+                setError("An error occurred while fetching job data.");
+            } finally {
+                setLoading(false);
             }
-          } catch (err) {
-            setError("An error occurred while fetching job data.");
-          } finally {
-            setLoading(false);
-          }
         };
-    
-        fetchJobs();
-      }, [adminData]);
+
+        fetchJobDetails();
+    }, [jobId, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSuccessMessage(null); // Clear previous success message
+
         try {
+            const storedAdminData = localStorage.getItem('adminData');
+            if (!storedAdminData) {
+                navigate('/'); // Redirect if no admin data found
+                return;
+            }
+            const adminData = JSON.parse(storedAdminData);
+
             const response = await axios.put(`http://localhost:8000/jobs/${jobId}/edit/`, job, {
                 headers: {
-                    'X-User-Email': adminData?.email
+                    'X-User-Email': adminData.email
                 }
             });
+
             if (response.data.status === "success") {
-                setSuccessMessage("Job updated successfully!"); // Set success message
+                setSuccessMessage("Job updated successfully!");
                 setTimeout(() => {
-                    navigate('/admindashboard'); // Redirect to Admin Dashboard after a short delay
-                }, 2000); // Redirect after 2 seconds
+                    navigate('/admindashboard'); // Redirect after 2 seconds
+                }, 2000);
             } else {
                 setError(response.data.message);
             }
         } catch (err) {
-            console.error("Error updating job:", err);
             setError("An error occurred while updating the job.");
         }
     };
 
-    // Inline styles
-    const styles = {
-        container: {
-            maxWidth: '600px',
-            margin: '2rem auto',
-            padding: '2rem',
-            backgroundColor: '#f9f9f9',
-            borderRadius: '8px',
-            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-        },
-        title: {
-            textAlign: 'center',
-            marginBottom: '1.5rem',
-            color: '#333',
-        },
-        input: {
-            width: '100%',
-            padding: '0.75rem',
-            marginBottom: '1rem',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            fontSize: '1rem',
-        },
-        button: {
-            width: '100%',
-            padding: '0.75rem',
-            backgroundColor: '#3182ce',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '1rem',
-            cursor: 'pointer',
-            transition: 'background-color 0.3s',
-        },
-        buttonHover: {
-            backgroundColor: '#2b6cb0',
-        },
-        message: {
-            textAlign: 'center',
-            marginTop: '1rem',
-        },
-    };
+    if (loading) return <p>Loading job details...</p>;
 
     return (
         <div style={styles.container}>
@@ -126,15 +90,15 @@ const EditJob = () => {
                 <input
                     style={styles.input}
                     type="text"
-                    value={job.job_title || ''}
-                    onChange={(e) => setJob({ ...job, job_title: e.target.value })}
+                    value={job.Job_title}
+                    onChange={(e) => setJob({ ...job, Job_title: e.target.value })}
                     placeholder="Job Title"
                     required
                 />
                 <input
                     style={styles.input}
                     type="text"
-                    value={job.location || ''}
+                    value={job.location}
                     onChange={(e) => setJob({ ...job, location: e.target.value })}
                     placeholder="Location"
                     required
@@ -142,40 +106,90 @@ const EditJob = () => {
                 <input
                     style={styles.input}
                     type="text"
-                    value={job.qualification || ''}
+                    value={job.qualification}
                     onChange={(e) => setJob({ ...job, qualification: e.target.value })}
                     placeholder="Qualification"
-                    required
                 />
                 <textarea
                     style={styles.input}
-                    value={job.job_description || ''}
+                    value={job.job_description}
                     onChange={(e) => setJob({ ...job, job_description: e.target.value })}
                     placeholder="Job Description"
-                    required
                 />
                 <input
                     style={styles.input}
                     type="text"
-                    value={job.required_skills_and_qualifications || ''}
+                    value={job.required_skills_and_qualifications}
                     onChange={(e) => setJob({ ...job, required_skills_and_qualifications: e.target.value })}
                     placeholder="Required Skills"
-                    required
                 />
                 <input
                     style={styles.input}
                     type="text"
-                    value={job.salary_range || ''}
+                    value={job.salary_range}
                     onChange={(e) => setJob({ ...job, salary_range: e.target.value })}
                     placeholder="Salary Range"
-                    required
+                />
+                <input
+                    style={styles.input}
+                    type="text"
+                    value={job.employment_type}
+                    onChange={(e) => setJob({ ...job, employment_type: e.target.value })}
+                    placeholder="Employment Type"
+                />
+                <input
+                    style={styles.input}
+                    type="date"
+                    value={job.application_deadline}
+                    onChange={(e) => setJob({ ...job, application_deadline: e.target.value })}
+                    placeholder="Application Deadline"
                 />
                 <button style={styles.button} type="submit">Update Job</button>
-                {successMessage && <p style={{ color: 'green', ...styles.message }}>{successMessage}</p>} {/* Display success message */}
-                {error && <p style={{ color: 'red', ...styles.message }}>{error}</p>} {/* Display error message */}
+                {successMessage && <p style={{ color: 'green', ...styles.message }}>{successMessage}</p>}
+                {error && <p style={{ color: 'red', ...styles.message }}>{error}</p>}
             </form>
         </div>
     );
 };
 
-export default EditJob; 
+// Styles
+const styles = {
+    container: {
+        maxWidth: '600px',
+        margin: '2rem auto',
+        padding: '2rem',
+        backgroundColor: '#f9f9f9',
+        borderRadius: '8px',
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+    },
+    title: {
+        textAlign: 'center',
+        marginBottom: '1.5rem',
+        color: '#333',
+    },
+    input: {
+        width: '100%',
+        padding: '0.75rem',
+        marginBottom: '1rem',
+        border: '1px solid #ccc',
+        borderRadius: '4px',
+        fontSize: '1rem',
+    },
+    button: {
+        width: '100%',
+        padding: '0.75rem',
+        backgroundColor: '#3182ce',
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        fontSize: '1rem',
+        cursor: 'pointer',
+        transition: 'background-color 0.3s',
+    },
+    message: {
+        textAlign: 'center',
+        marginTop: '1rem',
+    },
+};
+
+export default EditJob;

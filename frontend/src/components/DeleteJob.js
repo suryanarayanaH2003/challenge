@@ -24,4 +24,4 @@ const DeleteJob = ({ jobId, adminData, onDeleteSuccess }) => {
     );
 };
 
-export default DeleteJob; 
+export default DeleteJob;   

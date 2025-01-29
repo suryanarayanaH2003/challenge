@@ -198,6 +198,22 @@ const UserDashboard = () => {
     setSelectedJob(job);
   };
 
+  const handleSaveJob = async (jobId) => {
+    try {
+      const response = await axios.post('http://localhost:8000/api/save-userjob/', {
+        email: userData.email,  // Replace with the actual user email
+        job_id: jobId
+      });
+
+      if (response.data.status === 'success') {
+        alert('Job saved successfully!');
+      } else {
+        alert(response.data.message || 'Failed to save job');
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to save job');
+    }
+  };
 
   const styles = {
     dashboard: {
@@ -552,6 +568,7 @@ const UserDashboard = () => {
                   >
                     Apply
                   </a>
+                  <button onClick={() => handleSaveJob(job._id)}>Save Job</button>
                 </div>
               </div>
             ))}

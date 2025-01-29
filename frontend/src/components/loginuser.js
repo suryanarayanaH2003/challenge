@@ -148,7 +148,7 @@ const LoginUser = () => {
             href="#"
             onClick={(e) => {
               e.preventDefault();
-              navigate('/forgot-password'); // Navigate to the Forgot Password page
+              navigate('/reset-password'); // Navigate to the Forgot Password page
             }}
             style={{ color: '#3182ce', textDecoration: 'none' }}
           >

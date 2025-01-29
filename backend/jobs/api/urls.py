@@ -13,7 +13,6 @@ urlpatterns = [
     path('home/', Home, name='home'),
     path('api/request-admin-email-otp/', request_admin_email_otp, name='request-admin-email-otp'),
     path('api/verify-admin-email-otp/', verify_admin_email_otp, name='verify-admin-email-otp'),
-    path('api/forgot-password/request-otp/', forgot_password_request_otp, name='forgot-password-request-otp'),
     path('api/forgot-password/verify-otp/', verify_otp, name='verify-otp'),
     path('api/reset-password/', reset_password, name='reset-password'),
     path("postjobs/", post_job, name="post_job"),
@@ -38,7 +37,12 @@ urlpatterns = [
     path('portal-login/', portal_login, name='portal_login'),
     path('portal-register/', portal_register, name='portal_register'),
     path('portal-dashboard/', portal_dashboard, name='portal_dashboard'),
-    ]
+    path('send-email/', send_email, name='send_email'),
+    path('api/forgot-password/', reset_password, name='forgot_password'),
+    path('api/reset-password/<str:email>/', reset_password_view, name='reset_password'),
+    path('api/save-userjob/', save_user_job, name='save_user_job'),
+    # path('deadline-jobs/', deadline_jobs, name='deadline_jobs'),
+]
     # path('job-applicants/<str:job_id>/', job_applicants, name='job_applicants'),
     # path('update-application-status/<str:application_id>/', update_application_status, name='update_application_status'),
     # path('logout/', logout_view, name='logout'),  # Add the logout URL

@@ -13,11 +13,11 @@ import ForgotPassword from './components/forgotpassword';
 import EditJob from './components/EditJob';
 import DeleteJob from './components/DeleteJob';
 import SavedJobs from './components/SavedJobs';
-import Superuser from './components/superuser';
 import PortalLogin from './components/portallogin';
 import PortalRegister from './components/portalregister';
 import PortalDashboard from './components/portaldashboard';
 import GuestDashboard from './components/GuestDashboard';
+import Deadline from './components/Deadline';
 
 
 function App() {
@@ -26,6 +26,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/register-admin" element={<RegisterAdmin />} />
+        <Route path="/deadline" element={<Deadline />} />
         <Route path="/portal-dashboard" element={<PortalDashboard />} />
         <Route path="/portal-login" element={<PortalLogin />} />
         <Route path="/portal-register" element={<PortalRegister />} />
@@ -37,13 +38,12 @@ function App() {
         <Route path="/postjobs" element={<PostJobs />} />
         <Route path="/userdashboard" element={<Userdashboard />} />
         <Route path="/user-profile" element={<UserProfile />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/editjob/:jobId" element={<EditJob />} />
         <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="/deletejob/:jobId" element={<DeleteJob />} />
         <Route path="/savedjobs" element={<SavedJobs />} />
         <Route path="/saved-jobs" element={<SavedJobs />} />
-        <Route path="/superuser" element={<Superuser />} />
+        <Route path="/reset-password" element={<ForgotPassword />} />
       </Routes>
     </Router>
   );

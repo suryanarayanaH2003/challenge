@@ -1,38 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 const ForgotPassword = () => {
     const navigate = useNavigate();
-    const [email, setEmail] = useState('');
-    const [otp, setOtp] = useState('');
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const emailFromLink = queryParams.get('email');
+
+    const [email, setEmail] = useState(emailFromLink || '');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
-    const [showOtpInput, setShowOtpInput] = useState(false);
-    const [showPasswordInput, setShowPasswordInput] = useState(false);
-    const [otpTimer, setOtpTimer] = useState(300);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const [showPasswordInput, setShowPasswordInput] = useState(!!emailFromLink);
     const [passwordError, setPasswordError] = useState('');
-
-    useEffect(() => {
-        let interval;
-        if (isTimerRunning && otpTimer > 0) {
-            interval = setInterval(() => {
-                setOtpTimer((prev) => prev - 1);
-            }, 1000);
-        } else if (otpTimer === 0) {
-            setIsTimerRunning(false);
-        }
-        return () => clearInterval(interval);
-    }, [isTimerRunning, otpTimer]);
-
-    const formatTime = (seconds) => {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-    };
 
     const validatePassword = (password) => {
         const lowercaseCount = (password.match(/[a-z]/g) || []).length;
@@ -56,43 +38,20 @@ const ForgotPassword = () => {
         setPasswordError(errorMessage.trim());
     };
 
-    const handleSendOtp = async () => {
+    const handleSendResetLink = async () => {
         try {
-            const response = await axios.post('http://localhost:8000/api/forgot-password/request-otp/', {
+            const response = await axios.post('http://localhost:8000/api/forgot-password/', {
                 email: email
             });
 
             if (response.data.status === 'success') {
-                setShowOtpInput(true);
-                setOtpTimer(300);
-                setIsTimerRunning(true);
-                setMessage('OTP sent successfully');
+                setMessage('Reset link sent successfully. Please check your email.');
                 setError('');
             } else {
-                setError(response.data.message || 'Failed to send OTP');
+                setError(response.data.message || 'Failed to send reset link');
             }
         } catch (error) {
-            setError(error.response?.data?.message || 'Failed to send OTP');
-        }
-    };
-
-    const handleVerifyOtp = async () => {
-        try {
-            const response = await axios.post('http://localhost:8000/api/forgot-password/verify-otp/', {
-                email: email,
-                otp: otp
-            });
-
-            if (response.data.status === 'success') {
-                setShowPasswordInput(true);
-                setShowOtpInput(false);
-                setMessage('OTP verified successfully');
-                setError('');
-            } else {
-                setError(response.data.message || 'Invalid OTP');
-            }
-        } catch (error) {
-            setError(error.response?.data?.message || 'Failed to verify OTP');
+            setError(error.response?.data?.message || 'Failed to send reset link');
         }
     };
 
@@ -110,9 +69,9 @@ const ForgotPassword = () => {
         }
 
         try {
-            const response = await axios.post('http://localhost:8000/api/reset-password/', {
-                email: email,
-                password: newPassword
+            const response = await axios.post(`http://localhost:8000/api/reset-password/${email}/`, {
+                new_password: newPassword,
+                confirm_password: confirmPassword
             });
 
             if (response.data.status === 'success') {
@@ -192,37 +151,51 @@ const ForgotPassword = () => {
                 <h2>Reset Password</h2>
                 {error && <div className="error-message">{error}</div>}
                 {message && <div className="success-message">{message}</div>}
-                <div className="form-group">
-                    <label>Email Address</label>
-                    <input type="email" className="input-field" value={email} onChange={(e) => setEmail(e.target.value)} />
-                    {!showOtpInput && (
-                        <button className="btn" onClick={handleSendOtp} disabled={!email || isTimerRunning}>
-                            {isTimerRunning ? `Resend OTP in ${Math.floor(otpTimer / 60)}:${otpTimer % 60}` : 'Send OTP'}
-                        </button>
-                    )}
-                </div>
-                {showOtpInput && (
+                
+                {!emailFromLink ? (
                     <div className="form-group">
-                        <label>Enter OTP</label>
-                        <input type="text" className="input-field" value={otp} onChange={(e) => setOtp(e.target.value)} />
-                        <button className="btn" onClick={handleVerifyOtp}>Verify OTP</button>
+                        <label>Email Address</label>
+                        <input 
+                            type="email" 
+                            className="input-field" 
+                            value={email} 
+                            onChange={(e) => setEmail(e.target.value)} 
+                        />
+                        <button 
+                            className="btn" 
+                            onClick={handleSendResetLink} 
+                            disabled={!email}
+                        >
+                            Send Reset Link
+                        </button>
                     </div>
-                )}
-                {showPasswordInput && (
+                ) : (
                     <>
                         <div className="form-group">
                             <label>New Password</label>
-                            <input type="password" className="input-field" value={newPassword} onChange={(e) => {
-                                setNewPassword(e.target.value);
-                                validatePassword(e.target.value);
-                            }} />
+                            <input 
+                                type="password" 
+                                className="input-field" 
+                                value={newPassword} 
+                                onChange={(e) => {
+                                    setNewPassword(e.target.value);
+                                    validatePassword(e.target.value);
+                                }} 
+                            />
                             {passwordError && <p className="error-message">{passwordError}</p>}
                         </div>
                         <div className="form-group">
                             <label>Confirm Password</label>
-                            <input type="password" className="input-field" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                            <input 
+                                type="password" 
+                                className="input-field" 
+                                value={confirmPassword} 
+                                onChange={(e) => setConfirmPassword(e.target.value)} 
+                            />
                         </div>
-                        <button className="btn" onClick={handleResetPassword}>Reset Password</button>
+                        <button className="btn" onClick={handleResetPassword}>
+                            Reset Password
+                        </button>
                     </>
                 )}
             </div>
