@@ -16,6 +16,7 @@ import SavedJobs from './components/SavedJobs';
 import Superuser from './components/superuser';
 import ResetPassword from './components/Reset-Password';
 import GuestDashboard from './components/GuestDashboard';
+import Deadline from './components/Deadline';
 
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
         <Route path="/saved-jobs" element={<SavedJobs />} />
         <Route path="/superuser" element={<Superuser />} />
         <Route path="/resetpassword" element={<ResetPassword />} />
+        <Route path="/deadline" element={<Deadline />} />
       </Routes>
     </Router>
   );

@@ -51,16 +51,21 @@ const SavedJob = () => {
   useEffect(() => {
     const fetchJobs = async () => {
       if (!adminData?.email) return;
-
+  
       try {
         const response = await axios.get("http://localhost:8000/saved-jobs/", {
           headers: {
             'X-User-Email': adminData.email
           }
         });
-
+  
         if (response.data.status === "success") {
-          setJobs(response.data.jobs || []);
+          let savedJobs = response.data.jobs || [];
+  
+          // Reverse the jobs array to have the last saved job first (LIFO)
+          savedJobs = savedJobs.reverse();
+  
+          setJobs(savedJobs);
         } else {
           setError(response.data.message || "Failed to fetch jobs.");
         }
@@ -70,9 +75,10 @@ const SavedJob = () => {
         setLoading(false);
       }
     };
-
+  
     fetchJobs();
   }, [adminData]);
+  
 
   const publishJob = async (jobId) => {
     try {

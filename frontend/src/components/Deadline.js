@@ -5,9 +5,8 @@ import Button from "./ui/button";
 import JobApplicants from "./JobApplicants";
 import DeleteJob from './DeleteJob';
 import SavedJobs from './SavedJobs';
-import Deadline from './Deadline';
 
-const AdminDashboard = () => {
+const Deadline = () => {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -49,64 +48,54 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     const fetchJobs = async () => {
-      if (!adminData?.email) return;
+      const storedAdminData = localStorage.getItem('adminData');
+      if (!storedAdminData) return;
+
+      setAdminData(JSON.parse(storedAdminData));
 
       try {
-        const response = await axios.get("http://localhost:8000/jobs/", {
+        const response = await axios.get('http://localhost:8000/jobs/', {
           headers: {
-            'X-User-Email': adminData.email
-          }
+            'X-User-Email': JSON.parse(storedAdminData).email,
+          },
         });
 
-        if (response.data.status === "success") {
-          const sortedJobs = response.data.jobs || [];
+        if (response.data.status === 'success') {
+          const allJobs = response.data.jobs || [];
+          const currentDate = new Date();
 
-          const filteredJobs = sortedJobs.filter((job) => {
-            const currentDate = new Date();
-            const deadlineDate = new Date(job.application_deadline);
-            if (deadlineDate < currentDate) {
-              setJobs(jobs.filter(job => job._id !== job._id));
-              return false; 
-            }
-            return true;
-          });
-
-          // Sort jobs by createdAt (newest first)
-          filteredJobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          // Filter jobs with deadlines that have passed
+          const filteredJobs = allJobs.filter(job => new Date(job.application_deadline) < currentDate);
 
           setJobs(filteredJobs);
         } else {
-          setError(response.data.message || "Failed to fetch jobs.");
+          setError(response.data.message || 'Failed to fetch jobs.');
         }
       } catch (err) {
-        setError("An error occurred while fetching job data.");
+        setError('An error occurred while fetching job data.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchJobs();
-  }, [adminData]);
+  }, []);
 
   const deleteJob = async (jobId) => {
     try {
       const response = await axios.delete(`http://localhost:8000/jobs/${jobId}/delete/`, {
         headers: {
-          'X-User-Email': adminData.email
-        }
+          'X-User-Email': adminData.email,
+        },
       });
-      if (response.data.status === "success") {
+      if (response.data.status === 'success') {
         setJobs(jobs.filter(job => job._id !== jobId)); // Remove job from state
       } else {
-        setError(response.data.message || "Failed to delete job.");
+        setError(response.data.message || 'Failed to delete job.');
       }
     } catch (err) {
-      setError("An error occurred while deleting the job.");
+      setError('An error occurred while deleting the job.');
     }
-  };
-
-  const handleEditJob = async (job) => {
-    navigate(`/editjob/${job._id}`, { state: { job } });
   };
 
   const handleLogout = (key) => {
@@ -226,16 +215,10 @@ const AdminDashboard = () => {
     <div style={styles.adminDashboard}>
       <div style={styles.container}>
         <div style={styles.header}>
-          <h1 style={styles.title}>Admin Dashboard</h1>
+          <h1 style={styles.title}>DeadLine Dashboard</h1>
           <div>
-          <Button onClick={() => navigate("/deadline")}>
-              View DeadLine Jobs
-            </Button>
-            <Button onClick={() => navigate("/saved-jobs")}>
-              View Preview Jobs
-            </Button><br></br>
-            <Button onClick={() => navigate("/postjobs")}>
-              Post New Job
+            <Button onClick={() => navigate("/admindashboard")}>
+              Back to Dashboard
             </Button>
             <Button onClick={() => handleLogout('adminData')}>
               Logout
@@ -243,13 +226,6 @@ const AdminDashboard = () => {
             
           </div>
         </div>
-
-        {adminData?.company && (
-          <div style={styles.companyInfo}>
-            <h2 style={styles.companyName}>{adminData.company.name}</h2>
-            <p style={styles.companyEmail}>Admin Email: {adminData.email}</p>
-          </div>
-        )}
 
         <input
           style={styles.searchInput}
@@ -266,7 +242,7 @@ const AdminDashboard = () => {
         ) : (
           <div style={styles.grid}>
             {filteredJobs.length === 0 ? (
-              <p>No jobs found.</p>
+              <p>No DeadLine jobs found.</p>
             ) : (
               filteredJobs.map((job) => (
                 <div
@@ -302,10 +278,8 @@ const AdminDashboard = () => {
                     <p><strong>Description:</strong> {job.job_description}</p>
                     <p><strong>Salary:</strong> {job.salary_range}</p>
                     <p><strong>Requirement Type:</strong> {job.employment_type}</p>
-                    <p><strong>Deadline:</strong> {new Date(job.application_deadline).toLocaleDateString()}</p>
                   </div>
                   <div style={styles.buttonContainer}>
-                    <Button onClick={() => handleEditJob(job)}>Edit Job</Button>
                     <DeleteJob jobId={job._id} adminData={adminData} onDeleteSuccess={(deletedJobId) => {
                       setJobs(jobs.filter(job => job._id !== deletedJobId));
                     }} />
@@ -335,4 +309,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default Deadline;

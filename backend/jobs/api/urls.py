@@ -34,6 +34,7 @@ urlpatterns = [
     path('saved-jobs/', get_saved_jobs, name='get_saved_jobs'),
     path('companies/', get_companies, name='get_companies'),
     path('job-details/<str:job_id>/', get_job_details, name='get_job_details'),
+    path('deadline/', deadline_jobs, name='deadline_jobs'),
     ]
     # path('job-applicants/<str:job_id>/', job_applicants, name='job_applicants'),
     # path('update-application-status/<str:application_id>/', update_application_status, name='update_application_status'),

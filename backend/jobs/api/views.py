@@ -1285,3 +1285,18 @@ def get_job_details(request, job_id):
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
     return JsonResponse({"status": "error", "message": "Invalid request method"}, status=405)
+
+def deadline_jobs(request):
+    try:
+        current_date = datetime.datetime.utcnow().date()  # Get the current date
+        jobs = job_collection.find()
+
+        for job in jobs:
+            if job.application_deadline and job.application_deadline < current_date:
+                job.application_deadline = False  # Assuming you have a field to track deadline status
+                job.save()
+
+        return JsonResponse({"status": "success", "message": "Jobs updated successfully"})
+    
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
