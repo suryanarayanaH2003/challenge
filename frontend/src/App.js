@@ -14,7 +14,7 @@ import EditJob from './components/EditJob';
 import DeleteJob from './components/DeleteJob';
 import SavedJobs from './components/SavedJobs';
 import Superuser from './components/superuser';
-
+import ResetPassword from './components/Reset-Password';
 import GuestDashboard from './components/GuestDashboard';
 
 
@@ -39,6 +39,7 @@ function App() {
         <Route path="/savedjobs" element={<SavedJobs />} />
         <Route path="/saved-jobs" element={<SavedJobs />} />
         <Route path="/superuser" element={<Superuser />} />
+        <Route path="/resetpassword" element={<ResetPassword />} />
       </Routes>
     </Router>
   );

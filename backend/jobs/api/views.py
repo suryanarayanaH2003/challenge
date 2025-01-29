@@ -15,7 +15,7 @@ from bcrypt import hashpw, gensalt
 
 
 from pymongo import MongoClient
-client = MongoClient('mongodb://localhost:27017/')
+client = MongoClient('mongodb+srv://suryanarayanan110803:9894153716@cluster0.shd6d.mongodb.net/')
 db = client['job-portal']
 info_collection = db['info']
 job_collection = db['jobs']
@@ -353,35 +353,6 @@ def Home(request):
     return render(request, 'home.html')
 
 @csrf_exempt
-def forgot_password_request_otp(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            email = data.get('email')
-            
-            if not email:
-                return JsonResponse({'status': 'failed', 'message': 'Email is required'})
-            
-            user = info_collection.find_one({'email': email})
-            if not user:
-                return JsonResponse({'status': 'failed', 'message': 'Email not found'})
-            
-            otp = generate_otp()
-            if send_otp_email(email, otp):
-                email_otp_store[email] = {
-                    'otp': otp,
-                    'timestamp': datetime.datetime.utcnow(),
-                    'attempts': 0
-                }
-                return JsonResponse({'status': 'success', 'message': 'OTP sent successfully'})
-            return JsonResponse({'status': 'failed', 'message': 'Failed to send OTP'})
-            
-        except Exception as e:
-            return JsonResponse({'status': 'failed', 'message': str(e)})
-    
-    return JsonResponse({'status': 'failed', 'message': 'Invalid request method'})
-
-@csrf_exempt
 def reset_password(request):
     if request.method == 'POST':
         try:
@@ -495,7 +466,7 @@ def post_job(request):
                 return JsonResponse({"status": "error", "message": f"Invalid JSON: {str(e)}"}, status=400)
 
             # Validate required fields
-            required_fields = ["Job title", "location", "qualification", "job_description", 
+            required_fields = ["Job_title", "location", "qualification", "job_description", 
                                "required_skills_and_qualifications", "salary_range", 
                                "employment_type", "application_deadline"]
             missing_fields = [field for field in required_fields if field not in body]
@@ -506,7 +477,7 @@ def post_job(request):
                 }, status=400)
 
             job = {
-                "Job title": body.get("Job title"),
+                "Job_title": body.get("Job_title"),
                 "company": company['name'],
                 "company_id": str(company['_id']),
                 "location": body.get("location"),
@@ -525,13 +496,13 @@ def post_job(request):
             result = job_collection.insert_one(job)
 
             # Send email to admin about the job post
-            subject = f"New Job Posted: {job['Job title']}"
+            subject = f"New Job Posted: {job['Job_title']}"
             body = f"""
             Dear Admin,
 
             A new job has been posted to the company {company['name']}.
 
-            Job Title: {job['Job title']}
+            Job_title: {job['Job_title']}
             Location: {job['location']}
             Qualification: {job['qualification']}
             Job Description: {job['job_description']}
@@ -591,7 +562,7 @@ def get_jobs(request):
             # Convert ObjectId to string for each job
             for job in jobs:
                 job["_id"] = str(job["_id"])
-                job["job_title"] = job.pop("Job title")
+                job["job_title"] = job.pop("Job_title")
 
             return JsonResponse({"status": "success", "jobs": jobs}, status=200)
         except Exception as e:
@@ -615,7 +586,7 @@ def fetch_jobs(request):
             # Convert ObjectId to string for each job
             for job in jobs:
                 job["_id"] = str(job["_id"])
-                job["job_title"] = job.pop("Job title")
+                job["job_title"] = job.pop("Job_title")
 
             return JsonResponse({"status": "success", "jobs": jobs}, status=200)
         except Exception as e:
@@ -990,12 +961,14 @@ def edit_job(request, job_id):
             result = job_collection.update_one(
                 {'_id': ObjectId(job_id)},
                 {'$set': {
-                    'Job title': body.get("title"),
+                    'Job_title': body.get("Job_title"),
                     'location': body.get("location"),
                     'qualification': body.get("qualification"),
                     'job_description': body.get("job_description"),
                     'required_skills_and_qualifications': body.get("required_skills_and_qualifications"),
                     'salary_range': body.get("salary_range"),
+                    'employment_type': body.get("employment_type"),
+                    'application_deadline': body.get("application_deadline"),
                 }}
             )
 
@@ -1051,7 +1024,7 @@ def get_saved_jobs(request):
             # Convert ObjectId to string for each job
             for job in saved_jobs:
                 job["_id"] = str(job["_id"])
-                job["job_title"] = job.pop("Job title")  # Adjust the key if necessary
+                job["job_title"] = job.pop("Job_title")  # Adjust the key if necessary
 
             return JsonResponse({"status": "success", "jobs": saved_jobs}, status=200)
         except Exception as e:
@@ -1086,7 +1059,7 @@ def save_job(request):
                 return JsonResponse({"status": "error", "message": f"Invalid JSON: {str(e)}"}, status=400)
 
             # Validate required fields
-            required_fields = ["Job title", "location", "qualification", "job_description", 
+            required_fields = ["Job_title", "location", "qualification", "job_description", 
                                "required_skills_and_qualifications", "salary_range", 
                                "employment_type", "application_deadline"]
             missing_fields = [field for field in required_fields if field not in body]
@@ -1097,7 +1070,7 @@ def save_job(request):
                 }, status=400)
 
             job = {
-                "Job title": body.get("Job title"),
+                "Job_title": body.get("Job_title"),
                 "company": company['name'],
                 "company_id": str(company['_id']),
                 "location": body.get("location"),
@@ -1168,13 +1141,13 @@ def publish_job(request, job_id):
                 # Send email to the admin after successful publication
                 company = company_collection.find_one({'_id': ObjectId(job['company_id'])})
                 if company:
-                    subject = f"New Job Posted: {job['Job title']}"
+                    subject = f"New Job Posted: {job['Job_title']}"
                     body = f"""
                     Dear Admin,
 
                     A new job has been posted to the company {company['name']}.
 
-                    Job Title: {job['Job title']}
+                    Job_title: {job['Job_title']}
                     Location: {job['location']}
                     Qualification: {job['qualification']}
                     Job Description: {job['job_description']}
@@ -1214,7 +1187,7 @@ def get_saved_jobs(request):
             # Convert ObjectId to string for each job
             for job in jobs:
                 job["_id"] = str(job["_id"])
-                job["job_title"] = job.pop("Job title")
+                job["job_title"] = job.pop("Job_title")
 
             return JsonResponse({"status": "success", "jobs": jobs}, status=200)
         except Exception as e:
@@ -1266,3 +1239,49 @@ def get_users(request):
         return JsonResponse({"status": "error", "message": "Invalid request method."}, status=405)
     
 
+
+@csrf_exempt
+def forgot_password(request):
+    """Handle password reset request."""
+    if request.method == 'POST':
+        try:
+            # Parse JSON body
+            data = json.loads(request.body)
+            email = data.get('email')
+            
+            # Check if the email is a valid Gmail address
+            if not email or not email.endswith('@gmail.com'):
+                return JsonResponse({'success': False, 'message': 'Invalid email address. Please use a valid Gmail address.'}, status=400)
+
+            # Generate a password reset link
+            reset_link = f"http://localhost:3000/resetpassword"
+            
+            # Send the reset email
+            subject = "Password Reset Request"
+            message = f"To reset your password, click the link: {reset_link}"
+
+            send_email(email, subject, message)
+            return JsonResponse({'success': True, 'message': 'Password reset link sent to your email'})
+
+        except Exception as e:
+            print(f"Error during password reset: {e}")
+            return JsonResponse({'success': False, 'message': 'An error occurred. Please try again later.'}, status=500)
+
+@csrf_exempt
+def get_job_details(request, job_id):
+    """
+    API to fetch a single job from the MongoDB collection.
+    """
+    if request.method == "GET":
+        try:
+            job = job_collection.find_one({'_id': ObjectId(job_id)})
+            if not job:
+                return JsonResponse({"status": "error", "message": "Job not found"}, status=404)
+
+            job["_id"] = str(job["_id"])  # Convert ObjectId to string for JSON serialization
+            return JsonResponse({"status": "success", "job": job})
+
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+    return JsonResponse({"status": "error", "message": "Invalid request method"}, status=405)

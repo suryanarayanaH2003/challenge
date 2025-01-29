@@ -117,9 +117,9 @@ const AdminDashboard = () => {
 
   // Filter jobs based on search query
   const filteredJobs = jobs.filter(job =>
-    job.job_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    job.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    job.qualification.toLowerCase().includes(searchQuery.toLowerCase())
+    job.job_title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    job.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    job.qualification?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const styles = {

@@ -72,7 +72,7 @@
 
 //       // Transform the data to match backend expectations
 //       const jobData = {
-//         "Job title": formData.title,  // Note the capital J and space
+//         "Job_title": formData.title,  // Note the capital J and space
 //         location: formData.location,
 //         qualification: formData.qualification,
 //         job_description: formData.job_description,
@@ -143,7 +143,7 @@
 //     e.preventDefault();
 //     try {
 //       const jobData = {
-//         "Job title": formData.title,
+//         "Job_title": formData.title,
 //         location: formData.location,
 //         qualification: formData.qualification,
 //         job_description: formData.job_description,
@@ -217,7 +217,7 @@
 //         )}
 
 //         <div style={styles.formGroup}>
-//           <label style={styles.label} htmlFor="title">Job Title</label>
+//           <label style={styles.label} htmlFor="title">Job_title</label>
 //           <input
 //             style={styles.input}
 //             type="text"
@@ -447,7 +447,7 @@ const PostJobs = () => {
 
       // Transform the data to match backend expectations
       const jobData = {
-        "Job title": formData.title,
+        "Job_title": formData.title,
         location: formData.location,
         qualification: formData.qualification,
         job_description: formData.job_description,
@@ -526,7 +526,7 @@ const PostJobs = () => {
       }
 
       const jobData = {
-        "Job title": formData.title,
+        "Job_title": formData.title,
         location: formData.location,
         qualification: formData.qualification,
         job_description: formData.job_description,
@@ -705,7 +705,7 @@ const PostJobs = () => {
         )}
 
         <div style={styles.formGroup}>
-          <label style={styles.label} htmlFor="title">Job Title</label>
+          <label style={styles.label} htmlFor="title">Job_title</label>
           <input
             style={styles.input}
             type="text"
